@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# Flask instance folder (your local SQLite DB lives here — never commit it)
+instance/
+*.db
+
+# Local secrets
+.env
+
+# OS cruft
+.DS_Store
+Thumbs.db

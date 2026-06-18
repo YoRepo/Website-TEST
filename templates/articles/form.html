@@ -1,0 +1,68 @@
+{# path: templates/articles/form.html -#}
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'New' }} article · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="cardmaker">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Article</p>
+    <h1 class="detail__title">{{ 'Edit article' if mode == 'edit' else 'New article' }}</h1>
+  </header>
+
+  <form id="article-form" class="cardform articleform" method="post"
+        action="{{ url_for('articles.edit', article_id=article.id) if mode == 'edit' else url_for('articles.new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field">
+      <label for="title">Title</label>
+      <input id="title" name="title" type="text" maxlength="160" required
+             value="{{ form.get('title', '') }}" />
+    </div>
+
+    <div class="field">
+      <label for="subtitle">Subtitle <span class="field__hint">(optional)</span></label>
+      <input id="subtitle" name="subtitle" type="text" maxlength="200"
+             value="{{ form.get('subtitle', '') }}" />
+    </div>
+
+    <div class="field">
+      <label for="overview">Overview</label>
+      <textarea id="overview" name="overview" rows="3" data-autocircle required>{{ form.get('overview', '') }}</textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="cover_image">Cover image <span class="field__hint">(path or URL, optional)</span></label>
+        <input id="cover_image" name="cover_image" type="text" maxlength="255"
+               value="{{ form.get('cover_image', '') }}" />
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="DRAFT" {{ 'selected' if form.get('status') == 'DRAFT' }}>Draft</option>
+          <option value="PUBLISHED" {{ 'selected' if form.get('status') == 'PUBLISHED' }}>Published</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="article-editor">
+      <h2 class="articleform__h">Sections &amp; cards</h2>
+      <p class="field__hint">Add sections, then drop cards into each. Every card can carry a caption.</p>
+      <div id="sections-host"></div>
+      <button type="button" class="btn btn--ghost" id="add-section">+ Add section</button>
+    </div>
+
+    <input type="hidden" name="structure" id="structure" value="" />
+
+    <div class="cardform__actions">
+      <button class="btn" type="submit">{{ 'Save changes' if mode == 'edit' else 'Publish article' }}</button>
+      <a class="btn btn--ghost" href="{{ url_for('main.index') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script id="all-cards" type="application/json">{{ cards|tojson }}</script>
+<script id="article-structure" type="application/json">{{ structure_obj|tojson }}</script>
+<script src="{{ url_for('static', filename='js/enclosed.js') }}"></script>
+<script src="{{ url_for('static', filename='js/article_form.js') }}"></script>
+{% endblock %}

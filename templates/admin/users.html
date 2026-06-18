@@ -1,0 +1,42 @@
+{# path: templates/admin/users.html -#}
+{% extends "base.html" %}
+{% block title %}Users · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Admin</p>
+  <h1 class="hero__title">Manage users</h1>
+</section>
+
+<table class="cardtable">
+  <thead><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for u in people %}
+    <tr>
+      <td class="cardtable__name">{{ u.display_name or u.username }}
+        <span class="acard__type">@{{ u.username }}</span></td>
+      <td>
+        <form method="post" action="{{ url_for('admin.set_role', user_id=u.id) }}"
+              style="display:flex; gap:0.5rem; align-items:center; margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="role">
+            {% for r in roles %}
+              <option value="{{ r.name }}" {{ 'selected' if u.role == r }}>{{ r.value }}</option>
+            {% endfor %}
+          </select>
+          <button class="link-gold" type="submit">Update</button>
+        </form>
+      </td>
+      <td class="cardtable__type">{{ 'Active' if u.active else 'Disabled' }}</td>
+      <td class="cardtable__actions">
+        <form method="post" action="{{ url_for('admin.toggle_active', user_id=u.id) }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="{{ 'link-danger' if u.active else 'link-gold' }}" type="submit">
+            {{ 'Disable' if u.active else 'Enable' }}
+          </button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

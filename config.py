@@ -1,0 +1,43 @@
+# path: config.py
+"""Configuration lives in its own module so settings are separated from logic.
+
+You point the app at a config object with `app.config.from_object(Config)`.
+In real projects you'd subclass this (DevConfig, ProdConfig) and pick one via
+an environment variable. Here we keep a single class for clarity.
+"""
+
+import os
+from datetime import timedelta
+
+# Dev mode unless explicitly disabled. Gates "secure-cookie" settings so login
+# still works over plain http locally.
+_DEBUG = os.environ.get("FLASK_DEBUG", "1") == "1"
+_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///customduelist.db")
+# Render gives "postgres://", SQLAlchemy wants "postgresql://". Fix transparently
+# so the same code runs locally (SQLite) and on Render (Postgres).
+if _DATABASE_URL.startswith("postgres://"):
+    _DATABASE_URL = _DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+
+class Config:
+    SITE_NAME = "TheCustomDuelist"
+    SITE_TAGLINE = "Custom cards, presented."
+
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
+
+    SQLALCHEMY_DATABASE_URI = _DATABASE_URL
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Flip to "0" (env var) or change this default to start empty —
+    # no demo users, cards, or articles. Only affects a fresh/empty DB.
+    SEED_DEMO_DATA = os.environ.get("SEED_DEMO_DATA", "1") == "1"
+
+    # --- Session / cookie hardening --------------------------------------
+    SESSION_COOKIE_HTTPONLY = True            # JS cannot read the session cookie
+    SESSION_COOKIE_SAMESITE = "Lax"           # CSRF defence-in-depth
+    SESSION_COOKIE_SECURE = not _DEBUG        # HTTPS-only off-dev
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SECURE = not _DEBUG
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    PERMANENT_SESSION_LIFETIME = timedelta(days=14)
+    WTF_CSRF_TIME_LIMIT = None                # token lives as long as the session

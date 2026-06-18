@@ -1,0 +1,241 @@
+{# path: templates/cards/form.html -#}
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'New' }} card · {{ SITE_NAME }}{% endblock %}
+
+{% macro arrow(code, cls) -%}
+  <label class="arrow arrow--{{ cls }}">
+    <input type="checkbox" name="link_arrows" value="{{ code }}" {{ 'checked' if code in data.arrows }}/>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 L21 18 H3 Z"/></svg>
+  </label>
+{%- endmacro %}
+
+{% block content %}
+<section class="cardmaker">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Card Maker</p>
+    <h1 class="detail__title">{{ 'Edit card' if mode == 'edit' else 'New card' }}</h1>
+    <p class="cardmaker__typeline" id="typeline"></p>
+  </header>
+
+  <div class="cardmaker__layout">
+    <aside class="cardmaker__preview">
+      <div class="cardpreview" id="card-preview"></div>
+    </aside>
+
+    <div class="cardmaker__form">
+  <form class="cardform" method="post"
+        data-static="{{ url_for('static', filename='') }}"
+        action="{{ url_for('cards.edit', card_id=card.id) if mode == 'edit' else url_for('cards.new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ---------- Name ---------- #}
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" maxlength="120" value="{{ data.name }}" required />
+    </div>
+
+    {# ---------- Card type + Set ---------- #}
+    <div class="field-row">
+      <div class="field">
+        <label for="category">Card type</label>
+        <select id="category" name="category">
+          {% for c in categories %}
+            <option value="{{ c.name }}" {{ 'selected' if data.category == c.name }}>{{ c.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="set_id">Set</label>
+        <select id="set_id" name="set_id">
+          <option value="">— No set —</option>
+          {% for s in sets %}
+            <option value="{{ s.id }}" {{ 'selected' if data.set_id == s.id|string }}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+        <input id="new_set_name" name="new_set_name" type="text" maxlength="120"
+               placeholder="…or type a new set name to create it"
+               style="margin-top:0.5rem;" />
+      </div>
+    </div>
+
+    {# ---------- Artwork (inside the frame) ---------- #}
+    <div class="field">
+      <label for="art_image">Artwork <span class="field__hint">(path relative to static/, e.g. cards/art.png)</span></label>
+      <div class="imgfield">
+        <div class="imgpreview" id="art-preview"><span>No image</span></div>
+        <input id="art_image" name="art_image" type="text" maxlength="255"
+               placeholder="cards/my-art.png" value="{{ data.art_image }}" />
+      </div>
+    </div>
+
+    {# ---------- Finished render (shown in the left preview & on articles) ---------- #}
+    <div class="field">
+      <label for="render_image">Card render image
+        <span class="field__hint">(finished card — path relative to static/ or full URL)</span></label>
+      <input id="render_image" name="render_image" type="text" maxlength="255"
+             placeholder="cards/renders/my-card.png" value="{{ data.render_image }}" />
+    </div>
+
+    {# ================= MONSTER ================= #}
+    <fieldset class="block" data-section="monster">
+      <legend>Monster</legend>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="attribute">Attribute</label>
+          <select id="attribute" name="attribute">
+            <option value="">—</option>
+            {% for a in attributes %}
+              <option value="{{ a.name }}" {{ 'selected' if data.attribute == a.name }}>{{ a.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="summon_type">Monster type</label>
+          <select id="summon_type" name="summon_type">
+            <option value="">Normal / Effect (main deck)</option>
+            {% for s in summon_types %}
+              <option value="{{ s.name }}" {{ 'selected' if data.summon_type == s.name }}>{{ s.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# Level / Rank / Link rating — one model field, three presentations #}
+      <div class="field" data-field="level">
+        <label for="level"><span id="level-label">Level</span></label>
+        <div class="levelwidget">
+          <span class="levelwidget__prefix" id="level-prefix" hidden>LINK-</span>
+          <input id="level" name="level" type="number" min="0" max="13" value="{{ data.level }}" />
+        </div>
+        <div class="stars" id="level-stars" role="group" aria-label="Level">
+          {% for i in range(1, 13) %}
+            <button type="button" class="star" data-value="{{ i }}" aria-label="{{ i }}">&#9733;</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="race">Race</label>
+          <select id="race" name="race">
+            <option value="">—</option>
+            {% for r in races %}
+              <option value="{{ r.name }}" {{ 'selected' if data.race == r.name }}>{{ r.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="ability">Subtype</label>
+          <select id="ability" name="ability">
+            <option value="">—</option>
+            {% for ab in abilities %}
+              <option value="{{ ab.name }}" {{ 'selected' if data.ability == ab.name }}>{{ ab.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="checks">
+        <label class="check"><input type="checkbox" name="is_effect" id="is_effect" {{ 'checked' if data.is_effect }}/> Effect</label>
+        <label class="check"><input type="checkbox" name="is_pendulum" id="is_pendulum" {{ 'checked' if data.is_pendulum }}/> Pendulum</label>
+        <label class="check"><input type="checkbox" name="is_tuner" id="is_tuner" {{ 'checked' if data.is_tuner }}/> Tuner</label>
+      </div>
+
+      <div class="field-row">
+        <div class="field" data-field="pendulum_scale">
+          <label for="pendulum_scale">Pendulum scale</label>
+          <input id="pendulum_scale" name="pendulum_scale" type="number" min="0" max="13" value="{{ data.pendulum_scale }}" />
+        </div>
+        <div class="field">
+          <label for="atk">ATK</label>
+          <input id="atk" name="atk" type="number" value="{{ data.atk }}" />
+        </div>
+        <div class="field" data-field="def">
+          <label for="def_">DEF</label>
+          <input id="def_" name="def_" type="number" value="{{ data.def_ }}" />
+        </div>
+      </div>
+
+      {# Immersive link-arrow pad #}
+      <div class="field" data-field="link_arrows">
+        <label>Link arrows</label>
+        <div class="arrowpad">
+          {{ arrow('TL','tl') }}{{ arrow('T','t') }}{{ arrow('TR','tr') }}
+          {{ arrow('L','l') }}<div class="arrowpad__card">LINK</div>{{ arrow('R','r') }}
+          {{ arrow('BL','bl') }}{{ arrow('B','b') }}{{ arrow('BR','br') }}
+        </div>
+      </div>
+    </fieldset>
+
+    {# ================= SPELL ================= #}
+    <fieldset class="block" data-section="spell">
+      <legend>Spell</legend>
+      <div class="field">
+        <label for="spell_subtype">Spell subtype</label>
+        <select id="spell_subtype" name="spell_subtype">
+          <option value="">—</option>
+          {% for st in spell_subtypes %}
+            <option value="{{ st.name }}" {{ 'selected' if data.spell_subtype == st.name }}>{{ st.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </fieldset>
+
+    {# ================= TRAP ================= #}
+    <fieldset class="block" data-section="trap">
+      <legend>Trap</legend>
+      <div class="field">
+        <label for="trap_subtype">Trap card type</label>
+        <select id="trap_subtype" name="trap_subtype">
+          <option value="">—</option>
+          {% for st in trap_subtypes %}
+            <option value="{{ st.name }}" {{ 'selected' if data.trap_subtype == st.name }}>{{ st.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </fieldset>
+
+    {# ========== Monster effect (monster only) ========== #}
+    <fieldset class="block" data-section="boxB">
+      <legend>Monster effect</legend>
+      <div class="field" data-field="materials">
+        <label for="materials">Materials line</label>
+        <input id="materials" name="materials" type="text" maxlength="255"
+               placeholder="e.g. 2 WATER monsters" value="{{ data.materials }}" />
+      </div>
+      <div class="field">
+        <label for="monster_conditions">Conditions / limitations / procedures</label>
+        <textarea id="monster_conditions" name="monster_conditions" rows="2" data-autocircle>{{ data.monster_conditions }}</textarea>
+      </div>
+      <div class="field">
+        <label for="monster_effect">Effect</label>
+        <textarea id="monster_effect" name="monster_effect" rows="3" data-autocircle>{{ data.monster_effect }}</textarea>
+      </div>
+    </fieldset>
+
+    {# ===== Spell/Trap effect (spell, trap, or pendulum monster) ===== #}
+    <fieldset class="block" data-section="boxA">
+      <legend id="boxA-label">Card effect</legend>
+      <div class="field">
+        <label for="effect_conditions">Conditions / limitations / procedures</label>
+        <textarea id="effect_conditions" name="effect_conditions" rows="2" data-autocircle>{{ data.effect_conditions }}</textarea>
+      </div>
+      <div class="field">
+        <label for="effect_text">Effect</label>
+        <textarea id="effect_text" name="effect_text" rows="3" data-autocircle>{{ data.effect_text }}</textarea>
+      </div>
+    </fieldset>
+
+    <div class="cardform__actions">
+      <button class="btn" type="submit">{{ 'Save changes' if mode == 'edit' else 'Create card' }}</button>
+      <a class="btn btn--ghost" href="{{ url_for('cards.list_cards') }}">Cancel</a>
+    </div>
+  </form>
+    </div><!-- .cardmaker__form -->
+  </div><!-- .cardmaker__layout -->
+</section>
+
+<script src="{{ url_for('static', filename='js/enclosed.js') }}"></script>
+<script src="{{ url_for('static', filename='js/card_form.js') }}"></script>
+{% endblock %}

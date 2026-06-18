@@ -1,0 +1,50 @@
+{# path: templates/articles/detail.html -#}
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+{% set byline = (article.author.display_name or article.author.username) if article.author else 'Unknown' %}
+<article class="detail detail--wide">
+  <p class="detail__back"><a href="{{ url_for('main.index') }}">← Back to the gallery</a></p>
+
+  <div class="detail__stage">
+    {% include "partials/card_stage.html" %}
+  </div>
+
+  <p class="hero__eyebrow">{{ article.card_count }}&times; card{{ '' if article.card_count == 1 else 's' }}</p>
+  <h1 class="detail__title">{{ article.title }}</h1>
+  {% if article.subtitle %}<p class="detail__subtitle">{{ article.subtitle }}</p>{% endif %}
+  <p class="detail__byline">by <span>{{ byline }}</span>
+     · {{ article.created_at.strftime('%b %d, %Y') }}
+     · <a class="link-gold" href="{{ url_for('articles.edit', article_id=article.id) }}">Edit</a></p>
+
+  <p class="detail__desc">{{ article.overview or article.description }}</p>
+
+  {# Unsectioned cards (covers seeded / simple articles). #}
+  {% set loose = article.card_links | selectattr('section_id', 'none') | list %}
+  {% if loose %}
+    <div class="showcase-list">
+      {% for link in loose %}
+        {% set card = link.card %}{% set caption = link.caption %}
+        {% include "partials/card_showcase.html" %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% for section in article.sections %}
+    <section class="article-section">
+      {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+      {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
+      <div class="showcase-list">
+        {% for link in section.cards %}
+          {% set card = link.card %}{% set caption = link.caption %}
+          {% include "partials/card_showcase.html" %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <p class="detail__note">Comment thread ({{ article.comment_count }} so far) comes in a later step.</p>
+</article>
+{% endblock %}

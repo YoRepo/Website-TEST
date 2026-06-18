@@ -1,0 +1,50 @@
+{# path: templates/index.html -#}
+{% extends "base.html" %}
+
+{% block title %}
+  {% if search_query %}“{{ search_query }}” · {{ SITE_NAME }}{% else %}{{ SITE_NAME }} · {{ SITE_TAGLINE }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">The Gallery</p>
+  <h1 class="hero__title">{{ SITE_TAGLINE }}</h1>
+  <p class="hero__lede">
+    Original cards, designed by the community and shown the way you'd hold them —
+    one in focus, or a hand fanned out to share.
+  </p>
+</section>
+
+{% if search_query %}
+  <p class="results-note" id="results-note">
+    {{ articles|length }} result{{ '' if articles|length == 1 else 's' }} for “{{ search_query }}”.
+    <a href="{{ url_for('main.index') }}">Clear</a>
+  </p>
+{% else %}
+  <p class="results-note" id="results-note" hidden></p>
+{% endif %}
+
+{% if articles %}
+  <div class="grid" id="article-grid">
+    {% for article in articles %}
+      {% include "partials/article_card.html" %}
+    {% endfor %}
+  </div>
+
+  {# Shown by JS when a live search filters every card out. #}
+  <div class="empty" id="empty-state" hidden>
+    <p class="empty__title">No cards match that search.</p>
+    <p class="empty__hint">Try a creator's name, a card name, or a keyword.</p>
+  </div>
+{% else %}
+  <div class="empty">
+    {% if search_query %}
+      <p class="empty__title">Nothing matched “{{ search_query }}”.</p>
+      <p class="empty__hint"><a href="{{ url_for('main.index') }}">Back to the full gallery →</a></p>
+    {% else %}
+      <p class="empty__title">The gallery is empty.</p>
+      <p class="empty__hint">Once articles are published, they'll appear here.</p>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

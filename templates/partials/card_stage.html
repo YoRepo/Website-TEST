@@ -1,0 +1,28 @@
+{# path: templates/partials/card_stage.html -#}
+{# The signature widget: shows 1–3 cards as if presented in hand.
+   `data-count` drives the layout (CSS handles the fan geometry):
+     1 → single upright card
+     2 → two cards fanned into a V, partly overlapping
+     3 → one upright in front, two fanned behind it
+   Cards arrive ordered by `position`; position 0 is the front/upright card. #}
+<div class="stage" data-count="{{ article.card_count }}">
+  <div class="stage__spotlight" aria-hidden="true"></div>
+  {% for link in article.card_links[:3] %}
+    {% set card = link.card %}
+    <figure class="tcg-card">
+      {% if card.render_image %}
+        {% if '://' in card.render_image or card.render_image.startswith('data:') %}
+          <img src="{{ card.render_image }}"
+               alt="{{ card.name }}" loading="lazy" draggable="false" />
+        {% else %}
+          <img src="{{ url_for('static', filename=card.render_image) }}"
+               alt="{{ card.name }}" loading="lazy" draggable="false" />
+        {% endif %}
+      {% else %}
+        <div class="tcg-card__svg" data-card-svg='{{ card.svg_state|tojson }}'>
+          <span class="tcg-card__placeholder">{{ card.name }}</span>
+        </div>
+      {% endif %}
+    </figure>
+  {% endfor %}
+</div>

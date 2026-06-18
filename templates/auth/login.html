@@ -1,0 +1,28 @@
+{# path: templates/auth/login.html -#}
+{% extends "base.html" %}
+{% block title %}Log in · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="cardmaker" style="max-width:460px;">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Welcome back</p>
+    <h1 class="detail__title">Log in</h1>
+  </header>
+  <form class="cardform" method="post" action="{{ url_for('auth.login') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" required
+             value="{{ form.get('username', '') }}" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required />
+    </div>
+    <label class="check"><input type="checkbox" name="remember" /> Remember me</label>
+    <div class="cardform__actions">
+      <button class="btn" type="submit">Log in</button>
+      <a class="btn btn--ghost" href="{{ url_for('auth.register') }}">Create account</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

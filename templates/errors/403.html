@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Forbidden · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose prose--center">
+  <p class="hero__eyebrow">403</p>
+  <h1 class="hero__title">Not your card to play.</h1>
+  <p>You don't have permission to do that.</p>
+  <p><a class="btn" href="{{ url_for('main.index') }}">Back to the gallery</a></p>
+</section>
+{% endblock %}

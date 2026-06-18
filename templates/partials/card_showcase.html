@@ -1,0 +1,89 @@
+{# path: templates/partials/card_showcase.html -#}
+{# Immersive card representation. Expects `card` and optional `caption`. #}
+<figure class="showcase showcase--{{ card.frame }}">
+  <div class="showcase__render">
+    {% if card.render_image %}
+      {% if '://' in card.render_image or card.render_image.startswith('data:') %}
+        <img src="{{ card.render_image }}" alt="{{ card.name }} render" loading="lazy" />
+      {% else %}
+        <img src="{{ url_for('static', filename=card.render_image) }}" alt="{{ card.name }} render" loading="lazy" />
+      {% endif %}
+    {% else %}
+      <div class="showcase__svg" data-card-svg='{{ card.svg_state|tojson }}'>
+        <div class="showcase__noart">{{ card.name }}</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="showcase__detail">
+    <div class="showcase__head">
+      <h3 class="showcase__name">{{ card.name }}</h3>
+      {% if card.display_attribute %}<span class="showcase__attr">[{{ card.display_attribute }}]</span>{% endif %}
+    </div>
+
+    {% if card.is_monster %}
+      <div class="showcase__rank">
+        {% if card.is_link %}
+          <span class="showcase__linkrating">LINK-{{ (card.link_arrows or [])|length }}</span>
+        {% elif card.level %}
+          <span class="showcase__stars {{ 'showcase__stars--rank' if card.summon_type and card.summon_type.name == 'XYZ' }}">
+            {% for _ in range(card.level) %}✪{% endfor %}
+          </span>
+          <span class="showcase__lvlnum">{{ card.level_label }} {{ card.level }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="showcase__typeline">{{ card.type_line }}</div>
+
+    {% if card.has_materials and card.materials %}
+      <div class="showcase__part showcase__part--materials">
+        <span class="showcase__part-label">Materials</span>
+        <p>{{ card.materials }}</p>
+      </div>
+    {% endif %}
+
+    {% set conditions = card.monster_conditions if card.is_monster else card.effect_conditions %}
+    {% if conditions %}
+      <div class="showcase__part showcase__part--cond">
+        <span class="showcase__part-label">Conditions</span>
+        <p>{{ conditions }}</p>
+      </div>
+    {% endif %}
+
+    {% set effect = card.monster_effect if card.is_monster else card.effect_text %}
+    {% set parts = effect | effect_parts %}
+    {% if parts %}
+      <div class="showcase__effects">
+        {% for p in parts %}
+          <div class="showcase__effect">
+            {% if p.marker %}<span class="showcase__marker">{{ p.marker }}</span>{% endif %}
+            <p>{{ p.text }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if card.is_pendulum and (card.effect_text or card.effect_conditions) %}
+      <div class="showcase__part showcase__part--pendulum">
+        <span class="showcase__part-label">Pendulum</span>
+        {% if card.effect_conditions %}<p>{{ card.effect_conditions }}</p>{% endif %}
+        {% for p in (card.effect_text | effect_parts) %}
+          <div class="showcase__effect">
+            {% if p.marker %}<span class="showcase__marker">{{ p.marker }}</span>{% endif %}
+            <p>{{ p.text }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if card.is_monster %}
+      <div class="showcase__stats">
+        <span>ATK&nbsp;{{ card.atk if card.atk is not none else '?' }}</span>
+        {% if card.shows_def %}<span>DEF&nbsp;{{ card.def_ if card.def_ is not none else '?' }}</span>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if caption %}<figcaption class="showcase__caption">{{ caption }}</figcaption>{% endif %}
+</figure>

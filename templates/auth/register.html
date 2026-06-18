@@ -1,0 +1,36 @@
+{# path: templates/auth/register.html -#}
+{% extends "base.html" %}
+{% block title %}Sign up · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="cardmaker" style="max-width:460px;">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Join</p>
+    <h1 class="detail__title">Create an account</h1>
+  </header>
+  <form class="cardform" method="post" action="{{ url_for('auth.register') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="username">Username <span class="field__hint">(3–40 letters/digits)</span></label>
+      <input id="username" name="username" type="text" required
+             value="{{ form.get('username', '') }}" />
+    </div>
+    <div class="field">
+      <label for="display_name">Display name <span class="field__hint">(optional)</span></label>
+      <input id="display_name" name="display_name" type="text"
+             value="{{ form.get('display_name', '') }}" />
+    </div>
+    <div class="field">
+      <label for="password">Password <span class="field__hint">(min 10 characters)</span></label>
+      <input id="password" name="password" type="password" required />
+    </div>
+    <div class="field">
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" name="confirm" type="password" required />
+    </div>
+    <div class="cardform__actions">
+      <button class="btn" type="submit">Sign up</button>
+      <a class="btn btn--ghost" href="{{ url_for('auth.login') }}">I have an account</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

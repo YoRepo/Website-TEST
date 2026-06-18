@@ -1,0 +1,13 @@
+{# path: templates/errors/404.html -#}
+{% extends "base.html" %}
+
+{% block title %}Not found · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="prose prose--center">
+  <p class="hero__eyebrow">404</p>
+  <h1 class="hero__title">This card isn't in the deck.</h1>
+  <p>The page you're after doesn't exist (or was discarded).</p>
+  <p><a class="btn" href="{{ url_for('main.index') }}">Back to the gallery</a></p>
+</section>
+{% endblock %}

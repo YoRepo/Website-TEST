@@ -1,0 +1,60 @@
+{# path: templates/cards/list.html -#}
+{% extends "base.html" %}
+{% block title %}Cards · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Card Maker</p>
+  <h1 class="hero__title">Your cards</h1>
+  <p><a class="btn" href="{{ url_for('cards.new') }}">+ New card</a></p>
+</section>
+
+{% if cards %}
+<table class="cardtable">
+  <thead>
+    <tr><th>Name</th><th>Type line</th><th>Set</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for card in cards %}
+    <tr>
+      <td><a class="cardtable__name" href="{{ url_for('cards.edit', card_id=card.id) }}">{{ card.name }}</a></td>
+      <td class="cardtable__type">
+        {% if card.is_monster %}
+          {{ card.display_attribute }} ·
+          {{ card.level_label }} {{ card.link_rating if card.is_link else (card.level if card.level is not none else '—') }} ·
+          {{ card.race.value if card.race else '—' }}
+          {%- if card.summon_type %} / {{ card.summon_type.value }}{% endif %}
+          {%- if card.is_pendulum %} / Pendulum{% endif %}
+          {%- if card.is_tuner %} / Tuner{% endif %}
+          {%- if card.is_effect %} / Effect{% else %} / Normal{% endif %}
+          · ATK {{ card.atk if card.atk is not none else '?' }}
+          {%- if card.shows_def %} / DEF {{ card.def_ if card.def_ is not none else '?' }}{% endif %}
+        {% else %}
+          {{ card.category.value }}{% if card.spell_trap_type %} · {{ card.spell_trap_type.value }}{% endif %}
+        {% endif %}
+      </td>
+      <td>{{ card.card_set.name if card.card_set else '—' }}</td>
+      <td class="cardtable__actions">
+        {% set mine = current_user.is_authenticated and card.owner_id == current_user.id %}
+        {% if mine or (current_user.is_authenticated and current_user.is_admin) %}
+        <a class="link-gold" href="{{ url_for('cards.edit', card_id=card.id) }}">Edit</a>
+        {% endif %}
+        {% if mine or (current_user.is_authenticated and current_user.is_staff) %}
+        <form method="post" action="{{ url_for('cards.delete', card_id=card.id) }}"
+              onsubmit="return confirm('Delete “{{ card.name }}”?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="link-danger" type="submit">Delete</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">
+  <p class="empty__title">No cards yet.</p>
+  <p class="empty__hint"><a href="{{ url_for('cards.new') }}">Make your first card →</a></p>
+</div>
+{% endif %}
+{% endblock %}

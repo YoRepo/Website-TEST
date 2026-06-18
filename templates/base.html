@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+{# path: templates/base.html -#}
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0E1014" />
+
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+
+  {# Cinzel = engraved wordmark/labels · Fraunces = titles · Inter = body/UI #}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body data-static="{{ url_for('static', filename='') }}">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="toolbar">
+    <div class="toolbar__inner">
+      {# --- Logo lockup: gold card-sigil + wordmark --- #}
+      <a class="brand" href="{{ url_for('main.index') }}" aria-label="{{ SITE_NAME }} home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="34" height="34">
+            <rect x="7" y="3" width="26" height="34" rx="4"
+                  transform="rotate(-9 20 20)"
+                  fill="none" stroke="var(--gold-soft)" stroke-width="1.6"/>
+            <rect x="7" y="3" width="26" height="34" rx="4"
+                  fill="none" stroke="var(--gold)" stroke-width="2"/>
+            <path d="M20 11 L28 20 L20 29 L12 20 Z" fill="var(--gold)"/>
+            <path d="M20 16 L24 20 L20 24 L16 20 Z" fill="var(--ink)"/>
+          </svg>
+        </span>
+        <span class="brand__word">
+          <span class="brand__the">The</span><span class="brand__name">CustomDuelist</span>
+        </span>
+      </a>
+
+      {# --- Search: submits to /search (no-JS fallback); JS upgrades it to
+             live grid filtering on the homepage. --- #}
+      <form class="search" role="search" action="{{ url_for('main.search') }}" method="get">
+        <svg class="search__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input class="search__input" type="search" name="q"
+               id="site-search" autocomplete="off"
+               placeholder="Search cards, creators…"
+               value="{{ search_query|default('') }}"
+               aria-label="Search articles" />
+      </form>
+
+      <nav class="toolbar__nav">
+        <a href="{{ url_for('cards.list_cards') }}">Cards</a>
+        <a href="{{ url_for('sets.list_sets') }}">Sets</a>
+        {% if current_user.is_authenticated %}
+          <details class="menu">
+            <summary class="menu__trigger toolbar__cta">+ Create</summary>
+            <div class="menu__panel">
+              <a href="{{ url_for('cards.new') }}">+ New card</a>
+              <a href="{{ url_for('articles.new') }}">+ New article</a>
+            </div>
+          </details>
+          <details class="menu menu--right">
+            <summary class="menu__trigger menu__user">{{ current_user.display_name or current_user.username }}</summary>
+            <div class="menu__panel">
+              {% if current_user.is_admin %}<a href="{{ url_for('admin.users') }}">Admin</a>{% endif %}
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Log out</button>
+              </form>
+            </div>
+          </details>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}">Log in</a>
+          <a class="toolbar__cta" href="{{ url_for('auth.register') }}">Sign up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for category, message in messages %}
+            <li class="flash flash-{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="22" height="22">
+            <path d="M20 6 L32 20 L20 34 L8 20 Z" fill="none" stroke="var(--gold)" stroke-width="2"/>
+            <path d="M20 13 L25 20 L20 27 L15 20 Z" fill="var(--gold)"/>
+          </svg>
+        </span>
+        <span>{{ SITE_NAME }}</span>
+      </div>
+      <nav class="footer__nav">
+        <a href="{{ url_for('main.index') }}">Gallery</a>
+        <a href="{{ url_for('main.about') }}">About</a>
+      </nav>
+      <p class="footer__fine">
+        Fan-made custom cards, shared for the love of the game.
+        Not affiliated with or endorsed by Konami. © {{ now_year }} {{ SITE_NAME }}.
+      </p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/card_svg.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/card_render.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
+</body>
+</html>

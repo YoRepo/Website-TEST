@@ -1,0 +1,29 @@
+{# path: templates/partials/article_card.html -#}
+{# One article in the homepage grid. The whole card is a link; the
+   data-search attribute feeds the live client-side search filter. #}
+{% set byline = (article.author.display_name or article.author.username) if article.author else 'Unknown' %}
+<article class="article-card"
+         data-search="{{ (article.title ~ ' ' ~ byline ~ ' ' ~ article.description) | lower }}">
+  <a class="article-card__link" href="{{ url_for('articles.detail', article_id=article.id) }}">
+    {% include "partials/card_stage.html" %}
+
+    <div class="article-card__body">
+      <span class="article-card__count" aria-label="{{ article.card_count }} card{{ '' if article.card_count == 1 else 's' }} featured">
+        {{ article.card_count }}&times; card{{ '' if article.card_count == 1 else 's' }}
+      </span>
+      <h2 class="article-card__title">{{ article.title }}</h2>
+      <p class="article-card__byline">by <span>{{ byline }}</span></p>
+      <p class="article-card__desc">{{ article.description }}</p>
+    </div>
+  </a>
+
+  <footer class="article-card__foot">
+    <span class="chip" title="{{ article.comment_count }} comment{{ '' if article.comment_count == 1 else 's' }}">
+      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <path d="M4 5h16v11H8l-4 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+      {{ article.comment_count }}
+    </span>
+    <span class="article-card__read">Read <span aria-hidden="true">→</span></span>
+  </footer>
+</article>

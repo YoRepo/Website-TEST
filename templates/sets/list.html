@@ -1,0 +1,56 @@
+{# path: templates/sets/list.html -#}
+{% extends "base.html" %}
+{% block title %}Sets · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Sets</p>
+  <h1 class="hero__title">Card sets</h1>
+</section>
+
+<form class="cardform" method="post" action="{{ url_for('sets.new') }}"
+      style="max-width:560px; margin-bottom:2rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field-row">
+    <div class="field">
+      <label for="s-name">Name</label>
+      <input id="s-name" name="name" type="text" maxlength="120" required />
+    </div>
+    <div class="field">
+      <label for="s-code">Code <span class="field__hint">(optional)</span></label>
+      <input id="s-code" name="code" type="text" maxlength="12" />
+    </div>
+  </div>
+  <div class="field">
+    <label for="s-desc">Description <span class="field__hint">(optional)</span></label>
+    <input id="s-desc" name="description" type="text" maxlength="280" />
+  </div>
+  <div class="cardform__actions">
+    <button class="btn" type="submit">+ Create set</button>
+  </div>
+</form>
+
+{% if sets %}
+<table class="cardtable">
+  <thead><tr><th>Name</th><th>Code</th><th>Cards</th><th></th></tr></thead>
+  <tbody>
+    {% for s in sets %}
+    <tr>
+      <td class="cardtable__name">{{ s.name }}</td>
+      <td class="cardtable__type">{{ s.code or '—' }}</td>
+      <td>{{ s.card_count }}</td>
+      <td class="cardtable__actions">
+        <form method="post" action="{{ url_for('sets.delete', set_id=s.id) }}"
+              onsubmit="return confirm('Delete “{{ s.name }}”?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="link-danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty"><p class="empty__title">No sets yet.</p></div>
+{% endif %}
+{% endblock %}

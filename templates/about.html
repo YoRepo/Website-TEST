@@ -1,0 +1,20 @@
+{# path: templates/about.html -#}
+{% extends "base.html" %}
+
+{% block title %}About · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="prose">
+  <p class="hero__eyebrow">About</p>
+  <h1 class="hero__title">A gallery for custom cards.</h1>
+  <p>
+    {{ SITE_NAME }} is a blog for showcasing original, community-made cards.
+    Every article puts the art first — one card in focus, or a small hand
+    fanned out — then makes room for the design notes and the comments.
+  </p>
+  <p>
+    This is a fan project, built for the love of designing and sharing cards.
+    It isn't affiliated with or endorsed by Konami.
+  </p>
+</section>
+{% endblock %}
