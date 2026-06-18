@@ -15,6 +15,7 @@ from flask_login import current_user, login_required
 
 from extensions import db
 from blueprints.auth import owner_or_admin
+from storage import save_upload, UploadError
 from models import (
     Card, CardSet, ArticleCard,
     CardCategory, Attribute, Race, MonsterSummonType, MonsterAbility,
@@ -64,6 +65,16 @@ def _clean(raw):
     raw = (raw or "").strip()
     return raw or None
 
+def _image_field(name, form):
+    """Prefer a newly uploaded file; otherwise keep the text path/URL.
+    Clearing the text box with no file removes the image."""
+    file = request.files.get(f"{name}_file")
+    if file and file.filename:
+        try:
+            return save_upload(file)
+        except UploadError as exc:
+            raise ValueError(str(exc))   # surfaces via the existing flash() path
+    return _clean(form.get(name))
 
 def _apply_form(card, form):
     """Populate `card` from submitted `form`, normalised by category.
@@ -84,8 +95,8 @@ def _apply_form(card, form):
         set_id = (form.get("set_id") or "").strip()
         card.set_id = int(set_id) if set_id else None
 
-    card.art_image = _clean(form.get("art_image"))
-    card.render_image = _clean(form.get("render_image"))
+    card.art_image = _image_field("art_image", form)
+    card.render_image = _image_field("render_image", form)
 
     if card.category == CardCategory.MONSTER:
         card.is_effect = "is_effect" in form

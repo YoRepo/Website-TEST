@@ -32,6 +32,16 @@ class Config:
     # no demo users, cards, or articles. Only affects a fresh/empty DB.
     SEED_DEMO_DATA = os.environ.get("SEED_DEMO_DATA", "1") == "1"
 
+    # --- Uploads ---------------------------------------------------------
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "8")) * 1024 * 1024
+    UPLOAD_BACKEND = os.environ.get("UPLOAD_BACKEND", "local")  # "local" | "s3"
+    UPLOAD_SUBDIR = os.environ.get("UPLOAD_SUBDIR", "uploads")  # under static/
+    # Only used when UPLOAD_BACKEND == "s3":
+    S3_BUCKET = os.environ.get("S3_BUCKET", "")
+    S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL", "")  # R2: https://<acct>.r2.cloudflarestorage.com
+    S3_PUBLIC_BASE = os.environ.get("S3_PUBLIC_BASE", "")  # public URL base for objects
+    S3_REGION = os.environ.get("S3_REGION", "auto")
+
     # --- Session / cookie hardening --------------------------------------
     SESSION_COOKIE_HTTPONLY = True            # JS cannot read the session cookie
     SESSION_COOKIE_SAMESITE = "Lax"           # CSRF defence-in-depth

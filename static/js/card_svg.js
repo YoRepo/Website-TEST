@@ -22,7 +22,7 @@
   function resolveImageSrc(path, staticBase) {
     path = (path || "").trim();
     if (!path) return "";
-    if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:")) return path;
+    if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:") || path.startsWith("blob:")) return path;
     return (staticBase || "/static/") + path.replace(/^\/+/, "");
   }
 

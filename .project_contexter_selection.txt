@@ -12,6 +12,7 @@ C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\config.py
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\extensions.py
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\instance\customduelist.db
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\models.py
+C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\requirements.txt
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\seed.py
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\static\css\style.css
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\static\js\article_form.js
@@ -39,3 +40,4 @@ C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\templates\partials\card_showcase
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\templates\partials\card_stage.html
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\templates\sets\list.html
 C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\user_service.py
+C:\Users\Yagor\PycharmProjectsPRO2\Website-TEST\wsgi.py

@@ -24,6 +24,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const artInput = $("#art_image");
   const renderInput = $("#render_image");
   const preview = document.getElementById("art-preview");
+  const artFile = $("#art_image_file");
+  const renderFile = $("#render_image_file");
+  let artObjURL = "";
+  let renderObjURL = "";
+
+  function fileURL(input, prev) {
+    if (prev) URL.revokeObjectURL(prev);
+    const f = input && input.files && input.files[0];
+    return f ? URL.createObjectURL(f) : "";
+  }
+  function refreshFileURLs() {
+    artObjURL = fileURL(artFile, artObjURL);
+    renderObjURL = fileURL(renderFile, renderObjURL);
+  }
+  if (artFile) artFile.addEventListener("change", refreshFileURLs);
+  if (renderFile) renderFile.addEventListener("change", refreshFileURLs);
   const boxALabel = document.getElementById("boxA-label");
   const typeline = document.getElementById("typeline");
   const staticBase = form.dataset.static || "/static/";
@@ -72,13 +88,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Image preview -----------------------------------------------------
   function paintPreview() {
-    const path = (artInput.value || "").trim();
-    if (path) {
+    const src = artObjURL || window.CardSVG.resolveImageSrc(artInput.value, staticBase);
+    if (src) {
       preview.innerHTML = "";
       const img = new Image();
       img.alt = "preview";
       img.onerror = () => { preview.innerHTML = "<span>Not found</span>"; };
-      img.src = window.CardSVG.resolveImageSrc(path, staticBase);
+      img.src = src;
       preview.appendChild(img);
     } else {
       preview.innerHTML = "<span>No image</span>";
@@ -140,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
       pendScale: parseInt($("#pendulum_scale").value, 10),
       atk: $("#atk").value.trim(), def: $("#def_").value.trim(),
       arrows: Array.from(form.querySelectorAll('input[name="link_arrows"]:checked')).map((c) => c.value),
-      artImage: artInput.value,
+      artImage: artObjURL || artInput.value,
       effectConditions: $("#effect_conditions").value.trim(),
       effectText: $("#effect_text").value.trim(),
       materials: $("#materials").value.trim(),
@@ -153,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // live SVG built from the form (useful while you're still designing).
   function renderPreview() {
     if (!previewHost) return;
-    const finalSrc = window.CardSVG.resolveImageSrc(renderInput ? renderInput.value : "", staticBase);
+    const finalSrc = renderObjURL || window.CardSVG.resolveImageSrc(renderInput ? renderInput.value : "", staticBase);
     if (finalSrc) {
       previewHost.innerHTML = '<img class="cardpreview__svg" alt="Card render preview">';
       const im = previewHost.querySelector("img");

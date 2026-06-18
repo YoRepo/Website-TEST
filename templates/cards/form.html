@@ -23,7 +23,7 @@
     </aside>
 
     <div class="cardmaker__form">
-  <form class="cardform" method="post"
+  <form class="cardform" method="post" enctype="multipart/form-data"
         data-static="{{ url_for('static', filename='') }}"
         action="{{ url_for('cards.edit', card_id=card.id) if mode == 'edit' else url_for('cards.new') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -60,20 +60,24 @@
 
     {# ---------- Artwork (inside the frame) ---------- #}
     <div class="field">
-      <label for="art_image">Artwork <span class="field__hint">(path relative to static/, e.g. cards/art.png)</span></label>
+      <label for="art_image">Artwork <span class="field__hint">(upload a file, or paste a path/URL)</span></label>
       <div class="imgfield">
         <div class="imgpreview" id="art-preview"><span>No image</span></div>
         <input id="art_image" name="art_image" type="text" maxlength="255"
-               placeholder="cards/my-art.png" value="{{ data.art_image }}" />
+               placeholder="cards/my-art.png or https://…" value="{{ data.art_image }}" />
       </div>
+      <input id="art_image_file" name="art_image_file" type="file"
+             accept="image/*" style="margin-top:0.5rem;" />
     </div>
 
     {# ---------- Finished render (shown in the left preview & on articles) ---------- #}
     <div class="field">
       <label for="render_image">Card render image
-        <span class="field__hint">(finished card — path relative to static/ or full URL)</span></label>
+        <span class="field__hint">(upload a finished card, or paste a path/URL)</span></label>
       <input id="render_image" name="render_image" type="text" maxlength="255"
-             placeholder="cards/renders/my-card.png" value="{{ data.render_image }}" />
+             placeholder="cards/renders/my-card.png or https://…" value="{{ data.render_image }}" />
+      <input id="render_image_file" name="render_image_file" type="file"
+             accept="image/*" style="margin-top:0.5rem;" />
     </div>
 
     {# ================= MONSTER ================= #}
