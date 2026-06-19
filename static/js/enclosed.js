@@ -1,11 +1,13 @@
 // path: static/js/enclosed.js
-// Type "(1)" and it becomes "①" (1–20). Also "(a)" → "ⓐ", "(A)" → "Ⓐ".
+// Type "(1)" and it becomes "①" (1–20). Also "(a)" → "ⓐ", "(A)" → "Ⓐ",
+// and "(*)" → "•" (a bullet point).
 // Pure front-end convenience; the real Unicode character is what gets saved.
 (function () {
   function circled(token) {
-    const m = /^\((\d{1,2}|[a-zA-Z])\)$/.exec(token);
+    const m = /^\((\d{1,2}|[a-zA-Z]|\*)\)$/.exec(token);
     if (!m) return null;
     const v = m[1];
+    if (v === "*") return "•";                  // •
     if (/^\d+$/.test(v)) {
       const n = parseInt(v, 10);
       if (n === 0) return "\u24EA";                  // ⓪
@@ -19,13 +21,14 @@
 
   // Match either a "(x)" token OR a single already-circled glyph, so we can
   // both create markers and undo them.
-  const CIRCLED = "[\\u2460-\\u2473\\u24ea\\u24d0-\\u24e9\\u24b6-\\u24cf]";
-  const SCAN = new RegExp("\\((?:\\d{1,2}|[a-zA-Z])\\)|" + CIRCLED, "g");
+  const CIRCLED = "[\\u2460-\\u2473\\u24ea\\u24d0-\\u24e9\\u24b6-\\u24cf\\u2022]";
+  const SCAN = new RegExp("\\((?:\\d{1,2}|[a-zA-Z]|\\*)\\)|" + CIRCLED, "g");
   const isLetter = (ch) => ch != null && /[a-zA-Z]/.test(ch);
 
   // Inverse of circled(): turn a glyph back into its "(x)" source token.
   function uncircle(ch) {
     const code = ch.codePointAt(0);
+    if (code === 0x2022) return "(*)";                                  // •
     if (code === 0x24ea) return "(0)";                                  // ⓪
     if (code >= 0x2460 && code <= 0x2473) return "(" + (code - 0x245f) + ")"; // ①–⑳
     if (code >= 0x24d0 && code <= 0x24e9)                               // ⓐ–ⓩ

@@ -15,6 +15,7 @@
       </div>
     {% endif %}
   </div>
+  {% include "partials/card_tools.html" %}
   <figcaption class="card-tile__cap">
     <span class="card-tile__name">{{ card.name }}</span>
     {% if card.card_set %}<span class="card-tile__set">{{ card.card_set.name }}</span>{% endif %}

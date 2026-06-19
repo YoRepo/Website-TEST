@@ -1211,3 +1211,123 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .card-tile:hover .card-tile__art { transform: none; }
 }
+
+/* =========================================================================
+   Owner/admin card tools — a 3-dot menu beneath a card render that opens an
+   Edit shortcut. Reuses the .menu dropdown machinery (see menu.js).
+   ========================================================================= */
+.card-tools { align-self: flex-start; }
+.card-tools > summary {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; color: var(--muted);
+  border: 1px solid var(--hair-2); background: var(--surface-2);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.card-tools > summary::after { content: none; }   /* drop the inherited caret */
+.card-tools > summary:hover {
+  color: var(--gold); border-color: var(--gold-soft); background: var(--surface-3);
+}
+.card-tools__panel { min-width: 150px; }
+/* In the showcase the tools sit in the render column, under the image. */
+.showcase__render .card-tools { margin-top: 0.6rem; }
+
+/* =========================================================================
+   Article display switch — reading (showcase rows) vs grid (4-wide tiles).
+   Both are server-rendered; main.js flips data-view live.
+   ========================================================================= */
+.article-views[data-view="reading"] .article-view--grid { display: none; }
+.article-views[data-view="grid"] .article-view--reading { display: none; }
+.article-view--grid .article-section .card-grid { margin-top: 0.6rem; }
+
+/* =========================================================================
+   Visual card picker — a modal with a search bar and a grid of card images,
+   used by the article editor to pick featured cards (see article_form.js).
+   ========================================================================= */
+body.is-modal-open { overflow: hidden; }
+
+.cardpicker {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+}
+.cardpicker[hidden] { display: none; }
+.cardpicker__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(8, 9, 12, 0.72); backdrop-filter: blur(2px);
+}
+.cardpicker__dialog {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  width: min(900px, 100%); max-height: min(82vh, 760px);
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: var(--surface-2);
+  border: 1px solid var(--hair-2); border-radius: 16px;
+  box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.9);
+}
+.cardpicker__head {
+  display: flex; gap: 0.7rem; align-items: center; margin-bottom: 1rem;
+}
+.cardpicker__search {
+  flex: 1; width: 100%; padding: 0.55rem 0.75rem;
+  font: inherit; font-size: 0.92rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--hair); border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.cardpicker__search:focus {
+  outline: none; border-color: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-dim);
+}
+.cardpicker__close {
+  flex: none; width: 38px; height: 38px; padding: 0;
+  font-size: 1.5rem; line-height: 1; color: var(--muted);
+  background: none; border: 1px solid var(--hair-2); border-radius: 10px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s;
+}
+.cardpicker__close:hover { color: var(--gold); border-color: var(--gold-soft); }
+
+.cardpicker__grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; overflow-y: auto; padding: 0.2rem;
+}
+.cardpicker__tile {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  padding: 0.5rem; text-align: left;
+  background: var(--surface-3); border: 1px solid var(--hair);
+  border-radius: 12px; cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cardpicker__tile:hover, .cardpicker__tile:focus-visible {
+  transform: translateY(-3px); border-color: var(--gold-soft);
+  box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85),
+              0 0 18px -6px rgba(227, 179, 65, 0.5);
+  outline: none;
+}
+.cardpicker__img {
+  display: block; aspect-ratio: 59 / 86; border-radius: 8px; overflow: hidden;
+  background: var(--ink-stage); border: 1px solid var(--hair);
+}
+.cardpicker__img img, .cardpicker__img svg {
+  width: 100%; height: 100%; display: block; object-fit: contain;
+}
+.cardpicker__placeholder {
+  display: flex; align-items: center; justify-content: center; height: 100%;
+  padding: 0.5rem; text-align: center;
+  font-family: var(--font-display); font-size: 0.9rem; color: var(--muted);
+}
+.cardpicker__name {
+  font-family: var(--font-display); font-weight: 600; font-size: 0.85rem;
+  color: var(--parchment); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cardpicker__set { font-size: 0.74rem; color: var(--muted-2); }
+.cardpicker__empty { text-align: center; color: var(--muted); padding: 2rem 0 0.5rem; }
+
+@media (max-width: 720px) {
+  .cardpicker__grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 480px) {
+  .cardpicker__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cardpicker__tile:hover, .cardpicker__tile:focus-visible { transform: none; }
+}
