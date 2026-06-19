@@ -1099,3 +1099,115 @@ img { max-width: 100%; }
   .showcase__effect:hover,
   .showcase__stats:hover { transform: none; }
 }
+
+/* =========================================================================
+   Search results — a 4-wide card image gallery with a Grid/List display
+   switch. The List view reuses the article .showcase-list styling above.
+   ========================================================================= */
+
+/* Toolbar above the results: count on the left, display switch on the right. */
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.6rem;
+}
+.results-bar .results-note { margin: 0; }
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--hair-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.view-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+.view-toggle__btn + .view-toggle__btn { border-left: 1px solid var(--hair-2); }
+.view-toggle__btn:hover { color: var(--gold); }
+.view-toggle__btn.is-active { color: var(--ink); background: var(--gold); }
+.view-toggle__btn svg { display: block; }
+
+/* Show one view at a time. Server sets data-view; main.js flips it live. */
+.search-results[data-view="grid"] #results-list { display: none; }
+.search-results[data-view="list"] #results-grid { display: none; }
+
+/* The 4 x n image gallery. */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.6rem 1.4rem;
+}
+.card-tile {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.card-tile__art {
+  aspect-ratio: 59 / 86;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(227,179,65,0.06), transparent 60%),
+    var(--ink-stage);
+  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.8);
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.card-tile:hover .card-tile__art {
+  transform: translateY(-4px);
+  border-color: var(--gold-soft);
+  box-shadow: 0 20px 42px -18px rgba(0, 0, 0, 0.85),
+              0 0 20px -6px rgba(227, 179, 65, 0.5);
+}
+.card-tile__art img,
+.card-tile__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.card-tile__art img { object-fit: contain; }
+.card-tile__svg svg { width: 100%; height: 100%; display: block; box-shadow: none; }
+.card-tile__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0.6rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.card-tile__cap { display: flex; flex-direction: column; gap: 0.1rem; }
+.card-tile__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--parchment);
+  transition: color 0.15s ease;
+}
+.card-tile:hover .card-tile__name { color: var(--gold); }
+.card-tile__set { font-size: 0.78rem; color: var(--muted-2); }
+
+@media (max-width: 980px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 680px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); gap: 1.2rem 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-tile:hover .card-tile__art { transform: none; }
+}
