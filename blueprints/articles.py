@@ -29,7 +29,13 @@ def _clean(raw):
 
 
 def _cards_for_picker():
-    return [{"id": c.id, "name": c.name, "type_line": c.type_line}
+    """Card data for the editor's visual picker: enough to render a small image
+    tile (finished render if present, else the inline SVG fallback) and to
+    search by name or set."""
+    return [{"id": c.id, "name": c.name, "type_line": c.type_line,
+             "set": c.card_set.name if c.card_set else "",
+             "render_image": c.render_image or "",
+             "svg_state": c.svg_state}
             for c in Card.query.order_by(Card.name).all()]
 
 
@@ -102,6 +108,9 @@ def _apply_article(article, form):
     return article
 
 
+_ARTICLE_VIEWS = ("reading", "grid")
+
+
 @articles_bp.route("/<int:article_id>")
 def detail(article_id):
     article = Article.query.get_or_404(article_id)
@@ -110,7 +119,12 @@ def detail(article_id):
             current_user.is_admin or article.author_id == current_user.id
         ):
             abort(404)   # 404, not 403 — don't confirm the draft exists
-    return render_template("articles/detail.html", article=article)
+    # `aview` (reading|grid) chooses how the featured cards are laid out; it's
+    # preserved on the toggle links so the choice survives a no-JS reload.
+    aview = request.args.get("aview", "reading")
+    if aview not in _ARTICLE_VIEWS:
+        aview = "reading"
+    return render_template("articles/detail.html", article=article, aview=aview)
 
 
 def _safe_structure(raw):

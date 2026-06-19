@@ -21,29 +21,89 @@
 
   <p class="detail__desc">{{ article.overview or article.description }}</p>
 
-  {# Unsectioned cards (covers seeded / simple articles). #}
   {% set loose = article.card_links | selectattr('section_id', 'none') | list %}
-  {% if loose %}
-    <div class="showcase-list">
-      {% for link in loose %}
-        {% set card = link.card %}{% set caption = link.caption %}
-        {% include "partials/card_showcase.html" %}
+
+  {# Display switch. Each option is a real link (no-JS fallback); main.js
+     upgrades it to an instant in-page toggle between reading and grid. #}
+  <div class="results-bar">
+    <p class="results-note">Featured cards</p>
+    <div class="view-toggle" role="group" aria-label="Article display"
+         data-target="#article-views" data-param="aview">
+      <a class="view-toggle__btn {{ 'is-active' if aview == 'reading' }}"
+         data-view="reading" aria-pressed="{{ 'true' if aview == 'reading' else 'false' }}"
+         href="{{ url_for('articles.detail', article_id=article.id, aview='reading') }}">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="3" rx="1" fill="currentColor"/>
+          <rect x="3" y="10.5" width="18" height="3" rx="1" fill="currentColor"/>
+          <rect x="3" y="17" width="18" height="3" rx="1" fill="currentColor"/>
+        </svg>
+        Reading
+      </a>
+      <a class="view-toggle__btn {{ 'is-active' if aview == 'grid' }}"
+         data-view="grid" aria-pressed="{{ 'true' if aview == 'grid' else 'false' }}"
+         href="{{ url_for('articles.detail', article_id=article.id, aview='grid') }}">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/>
+        </svg>
+        Grid
+      </a>
+    </div>
+  </div>
+
+  <div class="article-views" id="article-views" data-view="{{ aview }}">
+    {# ---------- Reading view: the immersive showcase rows ---------- #}
+    <div class="article-view article-view--reading">
+      {% if loose %}
+        <div class="showcase-list">
+          {% for link in loose %}
+            {% set card = link.card %}{% set caption = link.caption %}
+            {% include "partials/card_showcase.html" %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% for section in article.sections %}
+        <section class="article-section">
+          {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+          {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
+          <div class="showcase-list">
+            {% for link in section.cards %}
+              {% set card = link.card %}{% set caption = link.caption %}
+              {% include "partials/card_showcase.html" %}
+            {% endfor %}
+          </div>
+        </section>
       {% endfor %}
     </div>
-  {% endif %}
 
-  {% for section in article.sections %}
-    <section class="article-section">
-      {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
-      {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
-      <div class="showcase-list">
-        {% for link in section.cards %}
-          {% set card = link.card %}{% set caption = link.caption %}
-          {% include "partials/card_showcase.html" %}
-        {% endfor %}
-      </div>
-    </section>
-  {% endfor %}
+    {# ---------- Grid view: each section's cards in a 4-wide grid ---------- #}
+    <div class="article-view article-view--grid">
+      {% if loose %}
+        <div class="card-grid">
+          {% for link in loose %}
+            {% set card = link.card %}
+            {% include "partials/card_tile.html" %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% for section in article.sections %}
+        <section class="article-section">
+          {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+          {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
+          <div class="card-grid">
+            {% for link in section.cards %}
+              {% set card = link.card %}
+              {% include "partials/card_tile.html" %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </div>
 
   <p class="detail__note">Comment thread ({{ article.comment_count }} so far) comes in a later step.</p>
 </article>

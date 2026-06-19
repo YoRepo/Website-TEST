@@ -14,9 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ALL = JSON.parse(document.getElementById("all-cards").textContent || "[]");
   const byId = Object.fromEntries(ALL.map((c) => [String(c.id), c]));
-  const options =
-    `<option value="">— Choose a card —</option>` +
-    ALL.map((c) => `<option value="${c.id}">${esc(c.name)} — ${esc(c.type_line)}</option>`).join("");
+  const staticBase = document.body.dataset.static || "/static/";
 
   let state;
   try { state = JSON.parse(document.getElementById("article-structure").textContent || "{}"); }
@@ -55,7 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
       <div class="asec__cards"></div>
       <div class="asec__add">
-        <select class="asec__picker">${options}</select>
         <button type="button" class="btn btn--ghost asec__addcard">+ Add card</button>
       </div>`;
 
@@ -72,10 +69,10 @@ document.addEventListener("DOMContentLoaded", () => {
       render();
     });
     el.querySelector(".asec__addcard").addEventListener("click", () => {
-      const id = el.querySelector(".asec__picker").value;
-      if (!id) return;
-      sec.cards.push({ card_id: parseInt(id, 10), caption: "" });
-      render();
+      openPicker((card) => {
+        sec.cards.push({ card_id: card.id, caption: "" });
+        render();
+      });
     });
 
     const cardsHost = el.querySelector(".asec__cards");
@@ -126,6 +123,85 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   form.addEventListener("submit", () => { hidden.value = JSON.stringify(state); });
+
+  // =====================================================================
+  //  VISUAL CARD PICKER
+  //  A modal with a search bar and a grid of card images. Tap a card to
+  //  pick it. Built once, reused by every section's "+ Add card" button.
+  // =====================================================================
+  let onPick = null;          // callback for the current open session
+  const picker = document.createElement("div");
+  picker.className = "cardpicker";
+  picker.hidden = true;
+  picker.innerHTML = `
+    <div class="cardpicker__backdrop" data-close></div>
+    <div class="cardpicker__dialog" role="dialog" aria-modal="true" aria-label="Choose a card">
+      <div class="cardpicker__head">
+        <input type="search" class="cardpicker__search" placeholder="Search cards by name or set…" autocomplete="off">
+        <button type="button" class="cardpicker__close" aria-label="Close" data-close>&times;</button>
+      </div>
+      <div class="cardpicker__grid"></div>
+      <p class="cardpicker__empty" hidden>No cards match that search.</p>
+    </div>`;
+  document.body.appendChild(picker);
+
+  const searchInput = picker.querySelector(".cardpicker__search");
+  const grid = picker.querySelector(".cardpicker__grid");
+  const emptyMsg = picker.querySelector(".cardpicker__empty");
+
+  function cardImageHTML(c) {
+    if (c.render_image) {
+      const src = window.CardSVG
+        ? window.CardSVG.resolveImageSrc(c.render_image, staticBase)
+        : c.render_image;
+      return `<img src="${esc(src)}" alt="" loading="lazy" draggable="false">`;
+    }
+    if (window.CardSVG && c.svg_state) {
+      return window.CardSVG.build(c.svg_state, staticBase);
+    }
+    return `<span class="cardpicker__placeholder">${esc(c.name)}</span>`;
+  }
+
+  function renderPicker(filter) {
+    const q = (filter || "").trim().toLowerCase();
+    const matches = ALL.filter((c) =>
+      !q || c.name.toLowerCase().includes(q) || (c.set || "").toLowerCase().includes(q));
+    grid.innerHTML = matches.map((c) => `
+      <button type="button" class="cardpicker__tile" data-id="${c.id}" title="${esc(c.name)}">
+        <span class="cardpicker__img">${cardImageHTML(c)}</span>
+        <span class="cardpicker__name">${esc(c.name)}</span>
+        ${c.set ? `<span class="cardpicker__set">${esc(c.set)}</span>` : ""}
+      </button>`).join("");
+    emptyMsg.hidden = matches.length > 0;
+  }
+
+  function openPicker(cb) {
+    onPick = cb;
+    searchInput.value = "";
+    renderPicker("");
+    picker.hidden = false;
+    document.body.classList.add("is-modal-open");
+    searchInput.focus();
+  }
+
+  function closePicker() {
+    picker.hidden = true;
+    onPick = null;
+    document.body.classList.remove("is-modal-open");
+  }
+
+  searchInput.addEventListener("input", () => renderPicker(searchInput.value));
+  grid.addEventListener("click", (e) => {
+    const tile = e.target.closest(".cardpicker__tile");
+    if (!tile) return;
+    const card = byId[tile.dataset.id];
+    if (card && onPick) onPick(card);
+    closePicker();
+  });
+  picker.addEventListener("click", (e) => { if (e.target.dataset.close !== undefined) closePicker(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !picker.hidden) closePicker();
+  });
 
   render();
 });
