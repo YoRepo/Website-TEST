@@ -1,0 +1,75 @@
+{# path: templates/search.html -#}
+{% extends "base.html" %}
+
+{% block title %}
+  {% if search_query %}“{{ search_query }}” · {{ SITE_NAME }}{% else %}Search · {{ SITE_NAME }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Search</p>
+  <h1 class="hero__title">
+    {% if search_query %}Cards matching “{{ search_query }}”{% else %}Find a card{% endif %}
+  </h1>
+  <p class="hero__lede">Search by card name, or by the set a card belongs to.</p>
+</section>
+
+{% if not search_query %}
+  <div class="empty">
+    <p class="empty__title">Type a card name or set above to begin.</p>
+    <p class="empty__hint">Try a card name, a keyword, or one of your set names.</p>
+  </div>
+{% elif cards %}
+  <div class="results-bar">
+    <p class="results-note" id="results-note">
+      {{ cards|length }} result{{ '' if cards|length == 1 else 's' }} for “{{ search_query }}”.
+      <a href="{{ url_for('main.index') }}">Clear</a>
+    </p>
+
+    {# Display switch. Each option is a real link (no-JS fallback); main.js
+       upgrades it to an instant in-page toggle. #}
+    <div class="view-toggle" role="group" aria-label="Result display">
+      <a class="view-toggle__btn {{ 'is-active' if view == 'grid' }}"
+         data-view="grid" aria-pressed="{{ 'true' if view == 'grid' else 'false' }}"
+         href="{{ url_for('main.search', q=search_query, view='grid') }}">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/>
+          <rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/>
+        </svg>
+        Grid
+      </a>
+      <a class="view-toggle__btn {{ 'is-active' if view == 'list' }}"
+         data-view="list" aria-pressed="{{ 'true' if view == 'list' else 'false' }}"
+         href="{{ url_for('main.search', q=search_query, view='list') }}">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="3" rx="1" fill="currentColor"/>
+          <rect x="3" y="10.5" width="18" height="3" rx="1" fill="currentColor"/>
+          <rect x="3" y="17" width="18" height="3" rx="1" fill="currentColor"/>
+        </svg>
+        List
+      </a>
+    </div>
+  </div>
+
+  <div class="search-results" id="search-results" data-view="{{ view }}">
+    <div class="card-grid" id="results-grid">
+      {% for card in cards %}
+        {% include "partials/card_tile.html" %}
+      {% endfor %}
+    </div>
+
+    <div class="showcase-list" id="results-list">
+      {% for card in cards %}
+        {% include "partials/card_showcase.html" %}
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="empty">
+    <p class="empty__title">No cards matched “{{ search_query }}”.</p>
+    <p class="empty__hint"><a href="{{ url_for('main.index') }}">Back to the gallery →</a></p>
+  </div>
+{% endif %}
+{% endblock %}

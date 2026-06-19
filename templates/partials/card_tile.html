@@ -1,0 +1,22 @@
+{# path: templates/partials/card_tile.html -#}
+{# One card in the search grid: the finished render if there is one, otherwise
+   the same inline SVG fallback the stage/showcase use. Expects `card`. #}
+<figure class="card-tile card-tile--{{ card.frame }}">
+  <div class="card-tile__art">
+    {% if card.render_image %}
+      {% if '://' in card.render_image or card.render_image.startswith('data:') %}
+        <img src="{{ card.render_image }}" alt="{{ card.name }}" loading="lazy" draggable="false" />
+      {% else %}
+        <img src="{{ url_for('static', filename=card.render_image) }}" alt="{{ card.name }}" loading="lazy" draggable="false" />
+      {% endif %}
+    {% else %}
+      <div class="card-tile__svg" data-card-svg='{{ card.svg_state|tojson }}'>
+        <span class="card-tile__placeholder">{{ card.name }}</span>
+      </div>
+    {% endif %}
+  </div>
+  <figcaption class="card-tile__cap">
+    <span class="card-tile__name">{{ card.name }}</span>
+    {% if card.card_set %}<span class="card-tile__set">{{ card.card_set.name }}</span>{% endif %}
+  </figcaption>
+</figure>

@@ -1,17 +1,21 @@
 # path: blueprints/main.py
-"""The 'main' blueprint: the homepage, the about page, and search.
+"""The 'main' blueprint: the homepage, the about page, and card search.
 
-The homepage renders the full article grid. The toolbar search box filters
-that grid instantly in the browser (see static/js/main.js); the /search route
-below is the no-JavaScript fallback and also powers shareable result URLs.
+The homepage renders the full article grid. The toolbar search box submits to
+the /search route below, which looks up *cards* by name or by the set they
+belong to and shows them on a dedicated results page (grid or list view).
 """
 
 from flask import Blueprint, render_template, request
 
 from extensions import db
-from models import Article, ArticleStatus, User
+from models import Article, ArticleStatus, Card, CardSet
 
 main_bp = Blueprint("main", __name__)
+
+# The two ways search results can be presented. `grid` shows card images in a
+# 4-wide gallery; `list` shows the detailed rows used inside articles.
+_SEARCH_VIEWS = ("grid", "list")
 
 
 def _published_articles():
@@ -32,27 +36,35 @@ def index():
 
 @main_bp.route("/search")
 def search():
-    """No-JS fallback search over title, author, and description."""
+    """Search cards by card name keywords or by the name/code of their set.
+
+    `view` (grid|list) chooses how matches are presented; it's preserved across
+    the toggle links so the choice survives a no-JS page reload.
+    """
     query = request.args.get("q", "").strip()
+    view = request.args.get("view", "grid")
+    if view not in _SEARCH_VIEWS:
+        view = "grid"
+
+    cards = []
     if query:
         like = f"%{query}%"
-        results = (
-            Article.query.filter(Article.status == ArticleStatus.PUBLISHED)
-            .outerjoin(User, Article.author_id == User.id)
+        cards = (
+            Card.query
+            .outerjoin(CardSet, Card.set_id == CardSet.id)
             .filter(
                 db.or_(
-                    Article.title.ilike(like),
-                    Article.description.ilike(like),
-                    User.username.ilike(like),
-                    User.display_name.ilike(like),
+                    Card.name.ilike(like),
+                    CardSet.name.ilike(like),
+                    CardSet.code.ilike(like),
                 )
             )
-            .order_by(Article.created_at.desc())
+            .order_by(Card.created_at.desc())
             .all()
         )
-    else:
-        results = _published_articles()
-    return render_template("index.html", articles=results, search_query=query)
+    return render_template(
+        "search.html", cards=cards, search_query=query, view=view
+    )
 
 
 @main_bp.route("/about")
