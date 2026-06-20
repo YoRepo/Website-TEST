@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="acard__type">${esc(meta.type_line)}</span></div>
         <input type="text" class="acard__cdbid" inputmode="numeric"
                pattern="[0-9]*" maxlength="10"
-               placeholder="Card id in the .cdb (e.g. 100000001)">
+               placeholder="Card ID (set in the card editor)">
       </div>
       <div class="acard__bar">
         <button type="button" class="link-gold" data-a="cup">↑</button>
@@ -80,7 +80,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addCardBtn.addEventListener("click", () => {
     openPicker((card) => {
-      state.cards.push({ card_id: card.id, cdb_id: "" });
+      // Pre-fill the id from the card's editor setting; still editable here as
+      // a per-database override.
+      const preset = (card.cdb_id === 0 || card.cdb_id) ? String(card.cdb_id) : "";
+      state.cards.push({ card_id: card.id, cdb_id: preset });
       render();
     });
   });
