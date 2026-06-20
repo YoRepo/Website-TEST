@@ -1,0 +1,44 @@
+{# path: templates/cdb/form.html -#}
+{% extends "base.html" %}
+{% block title %}New .cdb · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="cardmaker">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Custom database</p>
+    <h1 class="detail__title">New .cdb</h1>
+  </header>
+
+  <form id="cdb-form" class="cardform articleform" method="post"
+        action="{{ url_for('cdb.generate') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field">
+      <label for="filename">File name <span class="field__hint">(.cdb is added for you)</span></label>
+      <input id="filename" name="filename" type="text" maxlength="120" required
+             placeholder="my-custom-cards"
+             value="{{ form.get('filename', '') }}" />
+    </div>
+
+    <div id="cdb-editor">
+      <h2 class="articleform__h">Cards in this database</h2>
+      <p class="field__hint">Add cards, then give each one the passcode (card id) it should have in the .cdb.</p>
+      <div id="cdb-cards"></div>
+      <div class="asec__add">
+        <button type="button" class="btn btn--ghost" id="cdb-addcard">+ Add card</button>
+      </div>
+    </div>
+
+    <input type="hidden" name="structure" id="structure" value="" />
+
+    <div class="cardform__actions">
+      <button class="btn" type="submit">Generate .cdb</button>
+      <a class="btn btn--ghost" href="{{ url_for('main.index') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script id="all-cards" type="application/json">{{ cards|tojson }}</script>
+<script id="cdb-structure" type="application/json">{{ structure_obj|tojson }}</script>
+<script src="{{ url_for('static', filename='js/cdb_form.js') }}"></script>
+{% endblock %}

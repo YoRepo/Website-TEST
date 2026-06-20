@@ -74,6 +74,7 @@ def create_app(config_class=Config):
     from blueprints.main import main_bp
     from blueprints.articles import articles_bp
     from blueprints.cards import cards_bp
+    from blueprints.cdb import cdb_bp
     from blueprints.sets import sets_bp
     from blueprints.auth import auth_bp
 
@@ -87,6 +88,7 @@ def create_app(config_class=Config):
     register_cli(app)
     app.register_blueprint(articles_bp, url_prefix="/articles")
     app.register_blueprint(cards_bp, url_prefix="/cards")
+    app.register_blueprint(cdb_bp, url_prefix="/cdb")
     app.register_blueprint(sets_bp, url_prefix="/sets")
 
     # Split an effect string on its leading circled markers (①②…⑳, ⓪) so each
