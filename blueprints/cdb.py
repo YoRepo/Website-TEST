@@ -31,6 +31,7 @@ def _cards_for_picker():
     SVG fallback render identically here."""
     return [{"id": c.id, "name": c.name, "type_line": c.type_line,
              "set": c.card_set.name if c.card_set else "",
+             "cdb_id": c.cdb_id if c.cdb_id is not None else "",
              "render_image": c.render_image or "",
              "svg_state": c.svg_state}
             for c in Card.query.order_by(Card.name).all()]
@@ -53,9 +54,19 @@ def _parse_items(structure):
 
     items, seen = [], set()
     for entry in cards:
+        card = Card.query.get(entry.get("card_id"))
+        if card is None:
+            raise ValueError("A selected card no longer exists; remove it.")
+
+        # Prefer an explicit override typed in the builder; otherwise use the
+        # id configured on the card itself in the editor.
         raw_id = str(entry.get("cdb_id", "")).strip()
+        if not raw_id and card.cdb_id is not None:
+            raw_id = str(card.cdb_id)
         if not raw_id:
-            raise ValueError("Every card needs a card id for the .cdb.")
+            raise ValueError(
+                f"“{card.name}” has no Card ID — set one in the card editor "
+                "(or type one here).")
         try:
             cdb_id = int(raw_id)
         except ValueError:
@@ -65,10 +76,6 @@ def _parse_items(structure):
         if cdb_id in seen:
             raise ValueError(f"Card id {cdb_id} is used more than once.")
         seen.add(cdb_id)
-
-        card = Card.query.get(entry.get("card_id"))
-        if card is None:
-            raise ValueError("A selected card no longer exists; remove it.")
         items.append((cdb_id, card))
     return items
 

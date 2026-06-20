@@ -67,6 +67,24 @@ def _clean(raw):
     return raw or None
 
 
+def _parse_cdb_id(form, card):
+    """The card's .cdb passcode: optional, positive, and unique across cards so
+    two cards can never collide in a generated database."""
+    raw = (form.get("cdb_id") or "").strip()
+    if not raw:
+        return None
+    try:
+        val = int(raw)
+    except ValueError:
+        raise ValueError("Card ID must be a whole number.")
+    if val <= 0:
+        raise ValueError("Card ID must be a positive number.")
+    clash = Card.query.filter(Card.cdb_id == val, Card.id != card.id).first()
+    if clash:
+        raise ValueError(f"Card ID {val} is already used by “{clash.name}”.")
+    return val
+
+
 def _parse_setcodes(form):
     """Read the up-to-four set-code boxes into a list of ints. Codes are
     hexadecimal archetype ids (e.g. 0x103); a bare '103' is read as hex too,
@@ -130,6 +148,7 @@ def _apply_form(card, form):
     card.render_image = _image_field("render_image", form)
 
     # EDOPro export metadata — independent of card category.
+    card.cdb_id = _parse_cdb_id(form, card)
     card.setcodes = _parse_setcodes(form)
     card.strings = _parse_strings(form)
 
@@ -200,6 +219,7 @@ def _strings_display(strings):
 def _formdata_from_card(card):
     """Uniform dict of string-ish values the template reads from (GET path)."""
     return {
+        "cdb_id": card.cdb_id if card.cdb_id is not None else "",
         "setcodes": _setcodes_display(card.setcodes),
         "strings": _strings_display(card.strings),
         "name": card.name or "",
@@ -229,7 +249,7 @@ def _formdata_from_card(card):
     }
 
 
-_SCALAR_KEYS = ["name", "category", "set_id", "art_image", "render_image",
+_SCALAR_KEYS = ["name", "category", "set_id", "art_image", "render_image", "cdb_id",
                 "summon_type", "ability", "attribute", "race", "level", "pendulum_scale",
                 "atk", "def_", "spell_subtype", "trap_subtype", "effect_conditions",
                 "effect_text", "materials", "monster_conditions", "monster_effect"]

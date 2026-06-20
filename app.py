@@ -20,7 +20,7 @@ def _ensure_card_columns():
     if "card" not in insp.get_table_names():
         return  # fresh DB: create_all() already built it with every column
     existing = {c["name"] for c in insp.get_columns("card")}
-    wanted = {"setcodes": "JSON", "strings": "JSON"}
+    wanted = {"cdb_id": "INTEGER", "setcodes": "JSON", "strings": "JSON"}
     missing = {name: typ for name, typ in wanted.items() if name not in existing}
     if not missing:
         return

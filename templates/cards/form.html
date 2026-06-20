@@ -238,6 +238,13 @@
       <p class="field__hint">Used only when you generate a .cdb — not shown on the card render.</p>
 
       <div class="field">
+        <label for="cdb_id">Card ID
+          <span class="field__hint">the passcode in the .cdb · pick a high custom range, e.g. 100000001</span></label>
+        <input id="cdb_id" name="cdb_id" type="number" min="1" step="1"
+               placeholder="100000001" value="{{ data.cdb_id }}" />
+      </div>
+
+      <div class="field">
         <label>Set codes
           <span class="field__hint">archetype membership · up to {{ 4 }}, hexadecimal (e.g. 0x103)</span></label>
         <div class="setcodes">

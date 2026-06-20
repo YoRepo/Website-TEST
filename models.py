@@ -277,6 +277,10 @@ class Card(db.Model):
     spell_trap_type = db.Column(db.Enum(SpellTrapType), nullable=True)
 
     # --- EDOPro .cdb export metadata (not used by the on-site renderer) ----
+    # The passcode this card gets in a generated .cdb (its `datas.id`). Chosen
+    # once here so the .cdb builder never has to ask. Use a high custom range
+    # (e.g. 100000001+) to avoid clashing with real Konami card ids.
+    cdb_id = db.Column(db.Integer, nullable=True)
     # Up to CDB_MAX_SETCODES archetype codes (ints), packed into the cdb's
     # 64-bit `setcode` column on export.
     setcodes = db.Column(db.JSON, nullable=True)
