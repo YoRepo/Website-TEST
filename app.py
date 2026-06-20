@@ -10,6 +10,25 @@ from flask import Flask, render_template
 from config import Config
 from extensions import db, login_manager, csrf
 
+def _ensure_card_columns():
+    """Additive, idempotent migration for columns that post-date the original
+    `card` table. `db.create_all()` creates missing *tables* but never ALTERs an
+    existing one, so brand-new columns (setcodes, strings) must be added by hand
+    on already-deployed databases. Safe to run on every boot."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    if "card" not in insp.get_table_names():
+        return  # fresh DB: create_all() already built it with every column
+    existing = {c["name"] for c in insp.get_columns("card")}
+    wanted = {"setcodes": "JSON", "strings": "JSON"}
+    missing = {name: typ for name, typ in wanted.items() if name not in existing}
+    if not missing:
+        return
+    with db.engine.begin() as conn:
+        for name, typ in missing.items():
+            conn.execute(text(f"ALTER TABLE card ADD COLUMN {name} {typ}"))
+
+
 def _bootstrap_admin_from_env(app):
     """Create the first admin from env vars, only if no admin exists yet.
     Lets you bootstrap on hosts with no shell (Render free tier). Safe to
@@ -127,6 +146,7 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        _ensure_card_columns()   # add post-hoc columns on existing databases
         # Populate sample content on first run so the homepage isn't empty.
         # Only seeds an empty DB, and only when SEED_DEMO_DATA is enabled.
         if app.config.get("SEED_DEMO_DATA", True):

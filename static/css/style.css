@@ -723,6 +723,18 @@ img { max-width: 100%; }
 .check { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; color: var(--text); cursor: pointer; }
 .check input { accent-color: var(--gold); width: 16px; height: 16px; }
 
+/* ---- EDOPro export: set codes + card strings ---- */
+.setcodes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.setcodes__input { width: 7rem; font-family: ui-monospace, monospace; }
+.strings { display: flex; flex-direction: column; gap: 0.4rem; }
+.strings__row { display: flex; align-items: center; gap: 0.6rem; }
+.strings__id {
+  flex: 0 0 1.6rem; text-align: center; font-family: ui-monospace, monospace;
+  font-size: 0.85rem; color: var(--muted-2);
+  border: 1px solid var(--line, #3a3a3a); border-radius: 4px; padding: 0.1rem 0;
+}
+.strings__input { flex: 1 1 auto; }
+
 /* ---- Card image field + preview ---- */
 .imgfield { display: flex; gap: 1rem; align-items: stretch; }
 .imgfield input { align-self: center; }

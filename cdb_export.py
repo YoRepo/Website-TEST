@@ -16,7 +16,7 @@ import sqlite3
 
 from models import (
     Attribute, Race, CardCategory, MonsterSummonType, MonsterAbility,
-    SpellTrapType,
+    SpellTrapType, CDB_MAX_SETCODES, CDB_MAX_STRINGS, default_card_strings,
 )
 
 # ---------------------------------------------------------------------------
@@ -187,6 +187,24 @@ def encode_race(card):
     return 0
 
 
+def encode_setcode(card):
+    """Pack up to four 16-bit archetype codes into the 64-bit ``setcode``
+    column: ``code0 | code1<<16 | code2<<32 | code3<<48``."""
+    value = 0
+    for i, code in enumerate(card.export_setcodes[:CDB_MAX_SETCODES]):
+        value |= (int(code) & 0xFFFF) << (i * 16)
+    return value
+
+
+def encode_strings(card):
+    """The 16 ``str1..str16`` values. The card's strings fill them in order
+    (string id ``i`` → ``str(i+1)``); the rest are empty."""
+    strings = [s or "" for s in (card.export_strings or default_card_strings())]
+    strings = strings[:CDB_MAX_STRINGS]
+    strings += [""] * (CDB_MAX_STRINGS - len(strings))
+    return strings
+
+
 def build_desc(card):
     """Flatten our split text boxes into the single ``desc`` EDOPro expects."""
     def joined(*parts):
@@ -218,7 +236,7 @@ def card_to_rows(cdb_id, card):
         int(cdb_id),                 # id
         OT_OCG_TCG,                  # ot
         0,                           # alias
-        0,                           # setcode (archetype; none for plain customs)
+        encode_setcode(card),        # setcode (up to 4 packed archetype codes)
         encode_type(card),           # type
         card.atk if card.atk is not None else 0,
         encode_def(card),            # def
@@ -227,7 +245,8 @@ def card_to_rows(cdb_id, card):
         encode_attribute(card),      # attribute
         0,                           # category (functional flags; unused)
     )
-    texts = (int(cdb_id), card.name or "", build_desc(card)) + ("",) * 16
+    texts = ((int(cdb_id), card.name or "", build_desc(card))
+             + tuple(encode_strings(card)))
     return datas, texts
 
 

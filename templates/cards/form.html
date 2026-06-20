@@ -231,6 +231,39 @@
       </div>
     </fieldset>
 
+    {# ========== EDOPro .cdb export (set codes + card strings) ========== #}
+    {# No data-section: these apply to every card type, so never hidden. #}
+    <fieldset class="block">
+      <legend>EDOPro export</legend>
+      <p class="field__hint">Used only when you generate a .cdb — not shown on the card render.</p>
+
+      <div class="field">
+        <label>Set codes
+          <span class="field__hint">archetype membership · up to {{ 4 }}, hexadecimal (e.g. 0x103)</span></label>
+        <div class="setcodes">
+          {% for i in range(4) %}
+            <input class="setcodes__input" name="setcode_{{ i }}" type="text"
+                   maxlength="6" placeholder="0x0000"
+                   value="{{ data.setcodes[i] if data.setcodes else '' }}" />
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Card strings
+          <span class="field__hint">referenced from Lua via Stringid(code, id); the id is shown in-game</span></label>
+        <div class="strings">
+          {% for i in range(9) %}
+            <div class="strings__row">
+              <span class="strings__id" title="string id {{ i }}">{{ i }}</span>
+              <input class="strings__input" name="string_{{ i }}" type="text" maxlength="255"
+                     value="{{ data.strings[i] if data.strings else 'string ' ~ i }}" />
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </fieldset>
+
     <div class="cardform__actions">
       <button class="btn" type="submit">{{ 'Save changes' if mode == 'edit' else 'Create card' }}</button>
       <a class="btn btn--ghost" href="{{ url_for('cards.list_cards') }}">Cancel</a>

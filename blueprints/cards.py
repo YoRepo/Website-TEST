@@ -20,6 +20,7 @@ from models import (
     Card, CardSet, ArticleCard,
     CardCategory, Attribute, Race, MonsterSummonType, MonsterAbility,
     SpellTrapType, LINK_ARROW_CODES,
+    CDB_MAX_SETCODES, CDB_DEFAULT_STRING_COUNT, default_card_strings,
 )
 
 cards_bp = Blueprint("cards", __name__)
@@ -65,6 +66,36 @@ def _clean(raw):
     raw = (raw or "").strip()
     return raw or None
 
+
+def _parse_setcodes(form):
+    """Read the up-to-four set-code boxes into a list of ints. Codes are
+    hexadecimal archetype ids (e.g. 0x103); a bare '103' is read as hex too,
+    matching how archetypes are conventionally written. Returns None if empty."""
+    out = []
+    for i in range(CDB_MAX_SETCODES):
+        raw = (form.get(f"setcode_{i}") or "").strip().lower()
+        if raw.startswith("0x"):
+            raw = raw[2:]
+        if not raw:
+            continue
+        try:
+            val = int(raw, 16)
+        except ValueError:
+            raise ValueError(
+                f"Set code “{form.get(f'setcode_{i}')}” must be hexadecimal "
+                "(e.g. 0x103).")
+        if not (0 < val <= 0xFFFF):
+            raise ValueError("Each set code must be between 0x1 and 0xFFFF.")
+        out.append(val)
+    return out or None
+
+
+def _parse_strings(form):
+    """Read the nine card-string boxes into a stable-length list (kept even when
+    blank so string ids stay aligned to their positions)."""
+    return [(form.get(f"string_{i}") or "").strip()
+            for i in range(CDB_DEFAULT_STRING_COUNT)]
+
 def _image_field(name, form):
     """Prefer a newly uploaded file; otherwise keep the text path/URL.
     Clearing the text box with no file removes the image."""
@@ -97,6 +128,10 @@ def _apply_form(card, form):
 
     card.art_image = _image_field("art_image", form)
     card.render_image = _image_field("render_image", form)
+
+    # EDOPro export metadata — independent of card category.
+    card.setcodes = _parse_setcodes(form)
+    card.strings = _parse_strings(form)
 
     if card.category == CardCategory.MONSTER:
         card.is_effect = "is_effect" in form
@@ -148,9 +183,25 @@ def _apply_form(card, form):
     return card
 
 
+def _setcodes_display(setcodes):
+    """Pad/clip stored set codes to CDB_MAX_SETCODES hex strings for the form."""
+    disp = [(f"0x{int(c):x}" if c else "") for c in (setcodes or [])]
+    disp += [""] * CDB_MAX_SETCODES
+    return disp[:CDB_MAX_SETCODES]
+
+
+def _strings_display(strings):
+    """Pad/clip to the nine managed strings for the form, defaulting blanks."""
+    src = list(strings) if strings else default_card_strings()
+    src += [""] * CDB_DEFAULT_STRING_COUNT
+    return src[:CDB_DEFAULT_STRING_COUNT]
+
+
 def _formdata_from_card(card):
     """Uniform dict of string-ish values the template reads from (GET path)."""
     return {
+        "setcodes": _setcodes_display(card.setcodes),
+        "strings": _strings_display(card.strings),
         "name": card.name or "",
         "category": card.category.name if card.category else "MONSTER",
         "set_id": str(card.set_id) if card.set_id else "",
@@ -191,6 +242,8 @@ def _formdata_from_request(form):
     d["is_pendulum"] = "is_pendulum" in form
     d["is_tuner"] = "is_tuner" in form
     d["arrows"] = form.getlist("link_arrows")
+    d["setcodes"] = [form.get(f"setcode_{i}", "") for i in range(CDB_MAX_SETCODES)]
+    d["strings"] = [form.get(f"string_{i}", "") for i in range(CDB_DEFAULT_STRING_COUNT)]
     return d
 
 
