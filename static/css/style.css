@@ -683,6 +683,33 @@ img { max-width: 100%; }
   box-shadow: 0 0 0 3px rgba(184, 71, 42, 0.18);
 }
 
+/* .ypk builder per-card status badges. */
+.ypk-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+.ypk-badge {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+.ypk-badge--ok   { color: #b9e6bf; border-color: rgba(63, 138, 68, 0.5); }
+.ypk-badge--warn { color: #f0bdb0; border-color: rgba(184, 71, 42, 0.5); }
+
+/* Monospace Lua script editor: preserve whitespace, no wrapping, tabs = 4. */
+.cardform textarea.codearea {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono",
+    Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  resize: vertical;
+}
+
 .cardform input[type="text"],
 .cardform input[type="number"],
 .cardform select,

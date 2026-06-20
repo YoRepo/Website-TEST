@@ -20,7 +20,8 @@ def _ensure_card_columns():
     if "card" not in insp.get_table_names():
         return  # fresh DB: create_all() already built it with every column
     existing = {c["name"] for c in insp.get_columns("card")}
-    wanted = {"cdb_id": "INTEGER", "setcodes": "JSON", "strings": "JSON"}
+    wanted = {"cdb_id": "INTEGER", "setcodes": "JSON", "strings": "JSON",
+              "script": "TEXT"}
     missing = {name: typ for name, typ in wanted.items() if name not in existing}
     if not missing:
         return
@@ -94,6 +95,7 @@ def create_app(config_class=Config):
     from blueprints.articles import articles_bp
     from blueprints.cards import cards_bp
     from blueprints.cdb import cdb_bp
+    from blueprints.ypk import ypk_bp
     from blueprints.sets import sets_bp
     from blueprints.auth import auth_bp
 
@@ -108,6 +110,7 @@ def create_app(config_class=Config):
     app.register_blueprint(articles_bp, url_prefix="/articles")
     app.register_blueprint(cards_bp, url_prefix="/cards")
     app.register_blueprint(cdb_bp, url_prefix="/cdb")
+    app.register_blueprint(ypk_bp, url_prefix="/ypk")
     app.register_blueprint(sets_bp, url_prefix="/sets")
 
     # Split an effect string on its leading circled markers (①②…⑳, ⓪) so each
