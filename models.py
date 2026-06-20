@@ -132,6 +132,22 @@ _TRAP_SUBTYPES = {
 # Link-arrow position codes (used in Card.link_arrows for Link monsters).
 LINK_ARROW_CODES = ("TL", "T", "TR", "L", "R", "BL", "B", "BR")
 
+# --- EDOPro .cdb export limits ---------------------------------------------
+# A .cdb packs all set codes into one 64-bit column, 16 bits each → 4 max.
+CDB_MAX_SETCODES = 4
+# The texts table has str1..str16 (string ids 0..15). We manage the first 9 by
+# default; Lua references them via aux.Stringid(code, id) where id → str(id+1).
+CDB_MAX_STRINGS = 16
+CDB_DEFAULT_STRING_COUNT = 9
+
+
+def default_card_strings():
+    """Nine self-documenting placeholders: string id ``i`` → text ``"string i"``.
+    During playtesting an unedited string shows up in-game as e.g. "string 3",
+    which is exactly the id you then edit."""
+    return [f"string {i}" for i in range(CDB_DEFAULT_STRING_COUNT)]
+
+
 class UserRole(enum.Enum):
     USER = "User"
     MODERATOR = "Moderator"
@@ -260,6 +276,14 @@ class Card(db.Model):
     # --- Spell/Trap-only --------------------------------------------------
     spell_trap_type = db.Column(db.Enum(SpellTrapType), nullable=True)
 
+    # --- EDOPro .cdb export metadata (not used by the on-site renderer) ----
+    # Up to CDB_MAX_SETCODES archetype codes (ints), packed into the cdb's
+    # 64-bit `setcode` column on export.
+    setcodes = db.Column(db.JSON, nullable=True)
+    # In-game card strings (texts.str1..str16). Defaults to nine self-
+    # documenting placeholders so unedited strings are obvious during play.
+    strings = db.Column(db.JSON, nullable=True, default=default_card_strings)
+
     # --- Text boxes -------------------------------------------------------
     # Box A — the "spell/trap/pendulum" text box. Used by Spell & Trap cards,
     # AND by the Pendulum half of a Pendulum monster.
@@ -306,6 +330,18 @@ class Card(db.Model):
     @property
     def has_materials(self):
         return self.is_extra_deck
+
+    # ----------------------------------------------------- .cdb export helpers
+    @property
+    def export_setcodes(self):
+        """Stored set codes as a clean list of ints (drops blanks/zeros)."""
+        return [int(c) for c in (self.setcodes or []) if c]
+
+    @property
+    def export_strings(self):
+        """Card strings to write to the cdb, falling back to the defaults when
+        a card predates this feature (NULL column)."""
+        return list(self.strings) if self.strings else default_card_strings()
 
     # ----------------------------------------------------- render helpers
     @property
