@@ -240,8 +240,10 @@
       <div class="field">
         <label for="cdb_id">Card ID
           <span class="field__hint">the passcode in the .cdb · pick a high custom range, e.g. 100000001</span></label>
+        <p class="field__error" id="cdb_id-error" role="alert" hidden></p>
         <input id="cdb_id" name="cdb_id" type="number" min="1" step="1"
-               placeholder="100000001" value="{{ data.cdb_id }}" />
+               placeholder="100000001" value="{{ data.cdb_id }}"
+               aria-describedby="cdb_id-error" />
       </div>
 
       <div class="field">
@@ -280,6 +282,7 @@
   </div><!-- .cardmaker__layout -->
 </section>
 
+<script id="taken-cdb-ids" type="application/json">{{ taken_cdb_ids|default({})|tojson }}</script>
 <script src="{{ url_for('static', filename='js/enclosed.js') }}"></script>
 <script src="{{ url_for('static', filename='js/card_form.js') }}"></script>
 {% endblock %}
