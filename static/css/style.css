@@ -672,6 +672,17 @@ img { max-width: 100%; }
 .field label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
 .field__hint { color: var(--muted-2); font-weight: 400; }
 
+/* Inline field-level validation error (e.g. duplicate Card ID). */
+.field__error {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: #f0bdb0;
+}
+.cardform input.is-invalid {
+  border-color: #b8472a;
+  box-shadow: 0 0 0 3px rgba(184, 71, 42, 0.18);
+}
+
 .cardform input[type="text"],
 .cardform input[type="number"],
 .cardform select,

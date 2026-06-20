@@ -267,6 +267,15 @@ def _formdata_from_request(form):
     return d
 
 
+def _taken_cdb_ids(exclude_id=None):
+    """Map of {cdb_id (str): card name} already in use, for inline duplicate
+    flagging in the editor. Excludes the card being edited."""
+    q = Card.query.filter(Card.cdb_id.isnot(None))
+    if exclude_id is not None:
+        q = q.filter(Card.id != exclude_id)
+    return {str(c.cdb_id): c.name for c in q.all()}
+
+
 # ---------------------------------------------------------------------- routes
 @cards_bp.route("/")
 def list_cards():
@@ -291,10 +300,12 @@ def new():
             flash(f"Couldn't save: {exc}", "error")
             return render_template("cards/form.html", mode="new",
                                    data=_formdata_from_request(request.form),
+                                   taken_cdb_ids=_taken_cdb_ids(),
                                    **_enum_context())
     blank = Card(category=CardCategory.MONSTER)
     return render_template("cards/form.html", mode="new",
-                           data=_formdata_from_card(blank), **_enum_context())
+                           data=_formdata_from_card(blank),
+                           taken_cdb_ids=_taken_cdb_ids(), **_enum_context())
 
 
 @cards_bp.route("/<int:card_id>/edit", methods=["GET", "POST"])
@@ -313,9 +324,11 @@ def edit(card_id):
             flash(f"Couldn't save: {exc}", "error")
             return render_template("cards/form.html", mode="edit", card=card,
                                    data=_formdata_from_request(request.form),
+                                   taken_cdb_ids=_taken_cdb_ids(card.id),
                                    **_enum_context())
     return render_template("cards/form.html", mode="edit", card=card,
-                           data=_formdata_from_card(card), **_enum_context())
+                           data=_formdata_from_card(card),
+                           taken_cdb_ids=_taken_cdb_ids(card.id), **_enum_context())
 
 
 @cards_bp.route("/<int:card_id>/delete", methods=["POST"])

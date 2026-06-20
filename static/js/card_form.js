@@ -238,7 +238,44 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPreview();
   }
 
+  // --- Card ID (.cdb passcode) uniqueness -------------------------------
+  // Live-check the typed id against the ids already used by other cards, so a
+  // clash is flagged above the input immediately and the form can't be saved.
+  const cdbId = $("#cdb_id");
+  const cdbErr = document.getElementById("cdb_id-error");
+  let TAKEN = {};
+  try { TAKEN = JSON.parse(document.getElementById("taken-cdb-ids").textContent || "{}"); }
+  catch { TAKEN = {}; }
+
+  function validateCdbId() {
+    if (!cdbId || !cdbErr) return true;
+    const raw = (cdbId.value || "").trim();
+    let msg = "";
+    if (raw) {
+      if (!/^\d+$/.test(raw) || parseInt(raw, 10) <= 0) {
+        msg = "Card ID must be a positive whole number.";
+      } else if (Object.prototype.hasOwnProperty.call(TAKEN, raw)) {
+        msg = `Card ID ${raw} is already used by “${TAKEN[raw]}”.`;
+      }
+    }
+    cdbErr.textContent = msg;
+    cdbErr.hidden = !msg;
+    cdbId.classList.toggle("is-invalid", !!msg);
+    cdbId.setAttribute("aria-invalid", msg ? "true" : "false");
+    return !msg;
+  }
+
+  if (cdbId) cdbId.addEventListener("input", validateCdbId);
+  form.addEventListener("submit", (e) => {
+    if (!validateCdbId()) {
+      e.preventDefault();
+      cdbId.focus();
+      cdbId.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  });
+
   form.addEventListener("input", update);
   form.addEventListener("change", update);
   update();
+  validateCdbId();
 });
