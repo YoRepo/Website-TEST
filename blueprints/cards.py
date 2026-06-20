@@ -85,6 +85,14 @@ def _parse_cdb_id(form, card):
     return val
 
 
+def _parse_script(form):
+    """The card's Lua script. Preserve indentation exactly; only normalise line
+    endings and trim surrounding blank lines. Empty → NULL."""
+    raw = (form.get("script") or "").replace("\r\n", "\n").replace("\r", "\n")
+    raw = raw.strip("\n")
+    return raw or None
+
+
 def _parse_setcodes(form):
     """Read the up-to-four set-code boxes into a list of ints. Codes are
     hexadecimal archetype ids (e.g. 0x103); a bare '103' is read as hex too,
@@ -151,6 +159,7 @@ def _apply_form(card, form):
     card.cdb_id = _parse_cdb_id(form, card)
     card.setcodes = _parse_setcodes(form)
     card.strings = _parse_strings(form)
+    card.script = _parse_script(form)
 
     if card.category == CardCategory.MONSTER:
         card.is_effect = "is_effect" in form
@@ -222,6 +231,7 @@ def _formdata_from_card(card):
         "cdb_id": card.cdb_id if card.cdb_id is not None else "",
         "setcodes": _setcodes_display(card.setcodes),
         "strings": _strings_display(card.strings),
+        "script": card.script or "",
         "name": card.name or "",
         "category": card.category.name if card.category else "MONSTER",
         "set_id": str(card.set_id) if card.set_id else "",
@@ -250,6 +260,7 @@ def _formdata_from_card(card):
 
 
 _SCALAR_KEYS = ["name", "category", "set_id", "art_image", "render_image", "cdb_id",
+                "script",
                 "summon_type", "ability", "attribute", "race", "level", "pendulum_scale",
                 "atk", "def_", "spell_subtype", "trap_subtype", "effect_conditions",
                 "effect_text", "materials", "monster_conditions", "monster_effect"]

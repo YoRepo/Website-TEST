@@ -273,6 +273,19 @@
       </div>
     </fieldset>
 
+    {# ========== Card script (.lua) ========== #}
+    {# No data-section: applies to every card type, so never hidden. #}
+    <fieldset class="block">
+      <legend>Card script (.lua)</legend>
+      <p class="field__hint">The card's effect script. Packed into the .ypk as
+        <code>script/c&lt;Card&nbsp;ID&gt;.lua</code> — set a Card ID above for it to be included.</p>
+      <div class="field">
+        <textarea id="script" name="script" class="codearea" rows="14" spellcheck="false"
+                  autocomplete="off" autocapitalize="off" wrap="off"
+                  placeholder="-- Lua effect script for this card&#10;local s,id=GetID()&#10;function s.initial_effect(c)&#10;end">{{ data.script }}</textarea>
+      </div>
+    </fieldset>
+
     <div class="cardform__actions">
       <button class="btn" type="submit">{{ 'Save changes' if mode == 'edit' else 'Create card' }}</button>
       <a class="btn btn--ghost" href="{{ url_for('cards.list_cards') }}">Cancel</a>

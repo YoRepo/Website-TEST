@@ -287,6 +287,9 @@ class Card(db.Model):
     # In-game card strings (texts.str1..str16). Defaults to nine self-
     # documenting placeholders so unedited strings are obvious during play.
     strings = db.Column(db.JSON, nullable=True, default=default_card_strings)
+    # The card's Lua effect script (the body of c<cdb_id>.lua). Plain text:
+    # newlines and indentation are preserved verbatim. NULL = no script yet.
+    script = db.Column(db.Text, nullable=True)
 
     # --- Text boxes -------------------------------------------------------
     # Box A — the "spell/trap/pendulum" text box. Used by Spell & Trap cards,

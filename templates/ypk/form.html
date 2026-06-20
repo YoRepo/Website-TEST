@@ -1,0 +1,45 @@
+{# path: templates/ypk/form.html -#}
+{% extends "base.html" %}
+{% block title %}New .ypk · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="cardmaker">
+  <header class="cardmaker__head">
+    <p class="hero__eyebrow">Custom card pack</p>
+    <h1 class="detail__title">New .ypk</h1>
+  </header>
+
+  <form id="ypk-form" class="cardform articleform" method="post"
+        action="{{ url_for('ypk.generate') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field">
+      <label for="filename">Pack name <span class="field__hint">(.ypk is added for you)</span></label>
+      <input id="filename" name="filename" type="text" maxlength="120" required
+             placeholder="my-custom-pack"
+             value="{{ form.get('filename', '') }}" />
+    </div>
+
+    <div id="ypk-editor">
+      <h2 class="articleform__h">Cards in this pack</h2>
+      <p class="field__hint">Each card brings its Card ID, Lua script, and render image from the card editor.
+        The pack bundles the .cdb, <code>script/c&lt;id&gt;.lua</code>, and <code>pics/&lt;id&gt;.*</code> for you.</p>
+      <div id="ypk-cards"></div>
+      <div class="asec__add">
+        <button type="button" class="btn btn--ghost" id="ypk-addcard">+ Add card</button>
+      </div>
+    </div>
+
+    <input type="hidden" name="structure" id="structure" value="" />
+
+    <div class="cardform__actions">
+      <button class="btn" type="submit">Generate .ypk</button>
+      <a class="btn btn--ghost" href="{{ url_for('main.index') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script id="all-cards" type="application/json">{{ cards|tojson }}</script>
+<script id="ypk-structure" type="application/json">{{ structure_obj|tojson }}</script>
+<script src="{{ url_for('static', filename='js/ypk_form.js') }}"></script>
+{% endblock %}

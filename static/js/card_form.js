@@ -274,6 +274,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- Lua script editor: make Tab insert a tab instead of leaving the field.
+  const script = $("#script");
+  if (script) {
+    script.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab" || e.shiftKey) return;
+      e.preventDefault();
+      const s = script.selectionStart, end = script.selectionEnd;
+      script.value = script.value.slice(0, s) + "\t" + script.value.slice(end);
+      script.selectionStart = script.selectionEnd = s + 1;
+    });
+  }
+
   form.addEventListener("input", update);
   form.addEventListener("change", update);
   update();
