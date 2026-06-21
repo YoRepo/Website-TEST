@@ -275,6 +275,12 @@ class Card(db.Model):
 
     # --- Spell/Trap-only --------------------------------------------------
     spell_trap_type = db.Column(db.Enum(SpellTrapType), nullable=True)
+    # A Trap card that Special Summons itself as a monster (e.g. Embodiment of
+    # Apophis). When true, the monster-stat columns above (attribute / race /
+    # level / atk / def_) are reused to hold the stats it gains once Summoned.
+    # In the .cdb these are written to the data row while the type stays a plain
+    # Trap — matching how the game's own database encodes trap monsters.
+    is_trap_monster = db.Column(db.Boolean, nullable=False, default=False)
 
     # --- EDOPro .cdb export metadata (not used by the on-site renderer) ----
     # The passcode this card gets in a generated .cdb (its `datas.id`). Chosen

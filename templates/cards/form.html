@@ -198,6 +198,51 @@
           {% endfor %}
         </select>
       </div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" name="is_trap_monster" id="is_trap_monster"
+          {{ 'checked' if data.is_trap_monster }}/> Trap Monster</label>
+      </div>
+    </fieldset>
+
+    {# ===== Trap Monster stats (a Trap that Summons itself as a monster) ===== #}
+    <fieldset class="block" data-section="trapmonster">
+      <legend>Trap Monster stats</legend>
+      <p class="field__hint">Used when this Trap is Special Summoned as a monster by its own effect.
+        The card stays a Trap; these are the stats it gains once Summoned.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="tm_attribute">Attribute</label>
+          <select id="tm_attribute" name="tm_attribute">
+            <option value="">—</option>
+            {% for a in attributes %}
+              <option value="{{ a.name }}" {{ 'selected' if data.tm_attribute == a.name }}>{{ a.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="tm_level">Level</label>
+          <input id="tm_level" name="tm_level" type="number" min="0" max="13" value="{{ data.tm_level }}" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tm_race">Type</label>
+          <select id="tm_race" name="tm_race">
+            <option value="">—</option>
+            {% for r in races %}
+              <option value="{{ r.name }}" {{ 'selected' if data.tm_race == r.name }}>{{ r.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="tm_atk">ATK</label>
+          <input id="tm_atk" name="tm_atk" type="number" value="{{ data.tm_atk }}" />
+        </div>
+        <div class="field">
+          <label for="tm_def">DEF</label>
+          <input id="tm_def" name="tm_def" type="number" value="{{ data.tm_def }}" />
+        </div>
+      </div>
     </fieldset>
 
     {# ========== Monster effect (monster only) ========== #}

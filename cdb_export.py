@@ -122,6 +122,13 @@ _PEND_SEPARATOR = "-" * 20
 # ---------------------------------------------------------------------------
 #  Per-field encoders
 # ---------------------------------------------------------------------------
+def carries_monster_stats(card):
+    """True for cards whose data row holds monster stats: real monsters, and
+    Trap Monsters (Traps that Summon themselves as a monster — the stats live
+    in the data row exactly as for a monster, while the type stays a Trap)."""
+    return card.is_monster or (card.is_trap and bool(card.is_trap_monster))
+
+
 def encode_type(card):
     """The ``type`` bitfield for one Card."""
     t = 0
@@ -150,7 +157,7 @@ def encode_type(card):
 def encode_level(card):
     """The ``level`` column. For pendulums the scales are packed into the high
     bytes; for Links it carries the link rating; otherwise it's Level/Rank."""
-    if card.category != CardCategory.MONSTER:
+    if not carries_monster_stats(card):
         return 0
     if card.is_link:
         return card.link_rating or 0
@@ -165,7 +172,7 @@ def encode_level(card):
 
 def encode_def(card):
     """The ``def`` column — Link monsters store their arrow markers here."""
-    if card.category != CardCategory.MONSTER:
+    if not carries_monster_stats(card):
         return 0
     if card.is_link:
         bits = 0
@@ -176,13 +183,13 @@ def encode_def(card):
 
 
 def encode_attribute(card):
-    if card.category == CardCategory.MONSTER and card.attribute:
+    if carries_monster_stats(card) and card.attribute:
         return _ATTR.get(card.attribute, 0)
     return 0
 
 
 def encode_race(card):
-    if card.category == CardCategory.MONSTER and card.race:
+    if carries_monster_stats(card) and card.race:
         return _RACE.get(card.race, 0)
     return 0
 
