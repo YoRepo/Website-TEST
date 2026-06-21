@@ -485,7 +485,8 @@ class ArticleCard(db.Model):
         db.Integer, db.ForeignKey("article_section.id"), nullable=True
     )
     position = db.Column(db.Integer, nullable=False, default=0)
-    caption = db.Column(db.String(400), nullable=True)
+    # Free-text note shown under the card (lore / tip / comment). No length cap.
+    caption = db.Column(db.Text, nullable=True)
 
     card = db.relationship("Card")
 
