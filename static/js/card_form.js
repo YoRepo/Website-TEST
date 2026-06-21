@@ -44,10 +44,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const typeline = document.getElementById("typeline");
   const staticBase = form.dataset.static || "/static/";
 
+  const trapMonster = $("#is_trap_monster");
   const sections = {
     monster: form.querySelector('[data-section="monster"]'),
     spell: form.querySelector('[data-section="spell"]'),
     trap: form.querySelector('[data-section="trap"]'),
+    trapmonster: form.querySelector('[data-section="trapmonster"]'),
     boxA: form.querySelector('[data-section="boxA"]'),
     boxB: form.querySelector('[data-section="boxB"]'),
   };
@@ -204,6 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
     show(sections.monster, isMonster);
     show(sections.spell, cat === "SPELL");
     show(sections.trap, cat === "TRAP");
+    show(sections.trapmonster, cat === "TRAP" && trapMonster && trapMonster.checked);
     show(sections.boxB, isMonster);
     show(sections.boxA, !isMonster || (isMonster && isPend));
 

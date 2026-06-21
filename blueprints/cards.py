@@ -194,20 +194,35 @@ def _apply_form(card, form):
         card.monster_conditions = _clean(form.get("monster_conditions"))
         card.monster_effect = _clean(form.get("monster_effect"))
         card.spell_trap_type = None
+        card.is_trap_monster = False
     else:
-        # Spell or Trap: one text box, no monster data. Each category has its
-        # own subtype field in the form (spell_subtype / trap_subtype).
+        # Spell or Trap: one text box. Each category has its own subtype field
+        # in the form (spell_subtype / trap_subtype).
         if card.category == CardCategory.SPELL:
             card.spell_trap_type = _enum_or_none(SpellTrapType, form.get("spell_subtype"))
+            card.is_trap_monster = False
         else:
             card.spell_trap_type = _enum_or_none(SpellTrapType, form.get("trap_subtype"))
+            card.is_trap_monster = "is_trap_monster" in form
         card.effect_conditions = _clean(form.get("effect_conditions"))
         card.effect_text = _clean(form.get("effect_text"))
         card.is_effect = card.is_pendulum = card.is_tuner = False
-        card.summon_type = card.ability = card.attribute = card.race = None
-        card.level = card.pendulum_scale = card.atk = card.def_ = None
+        card.summon_type = card.ability = None
+        card.pendulum_scale = None
         card.link_arrows = None
         card.materials = card.monster_conditions = card.monster_effect = None
+
+        # A Trap Monster reuses the monster-stat columns; a plain Spell/Trap
+        # clears them.
+        if card.category == CardCategory.TRAP and card.is_trap_monster:
+            card.attribute = _enum_or_none(Attribute, form.get("tm_attribute"))
+            card.race = _enum_or_none(Race, form.get("tm_race"))
+            card.level = _int_or_none(form.get("tm_level"))
+            card.atk = _int_or_none(form.get("tm_atk"))
+            card.def_ = _int_or_none(form.get("tm_def"))
+        else:
+            card.attribute = card.race = None
+            card.level = card.atk = card.def_ = None
     return card
 
 
@@ -251,6 +266,12 @@ def _formdata_from_card(card):
         "arrows": card.link_arrows or [],
         "spell_subtype": card.spell_trap_type.name if (card.is_spell and card.spell_trap_type) else "",
         "trap_subtype": card.spell_trap_type.name if (card.is_trap and card.spell_trap_type) else "",
+        "is_trap_monster": bool(card.is_trap_monster),
+        "tm_attribute": card.attribute.name if (card.is_trap_monster and card.attribute) else "",
+        "tm_race": card.race.name if (card.is_trap_monster and card.race) else "",
+        "tm_level": card.level if (card.is_trap_monster and card.level is not None) else "",
+        "tm_atk": card.atk if (card.is_trap_monster and card.atk is not None) else "",
+        "tm_def": card.def_ if (card.is_trap_monster and card.def_ is not None) else "",
         "effect_conditions": card.effect_conditions or "",
         "effect_text": card.effect_text or "",
         "materials": card.materials or "",
@@ -263,7 +284,8 @@ _SCALAR_KEYS = ["name", "category", "set_id", "art_image", "render_image", "cdb_
                 "script",
                 "summon_type", "ability", "attribute", "race", "level", "pendulum_scale",
                 "atk", "def_", "spell_subtype", "trap_subtype", "effect_conditions",
-                "effect_text", "materials", "monster_conditions", "monster_effect"]
+                "effect_text", "materials", "monster_conditions", "monster_effect",
+                "tm_attribute", "tm_race", "tm_level", "tm_atk", "tm_def"]
 
 
 def _formdata_from_request(form):
@@ -272,6 +294,7 @@ def _formdata_from_request(form):
     d["is_effect"] = "is_effect" in form
     d["is_pendulum"] = "is_pendulum" in form
     d["is_tuner"] = "is_tuner" in form
+    d["is_trap_monster"] = "is_trap_monster" in form
     d["arrows"] = form.getlist("link_arrows")
     d["setcodes"] = [form.get(f"setcode_{i}", "") for i in range(CDB_MAX_SETCODES)]
     d["strings"] = [form.get(f"string_{i}", "") for i in range(CDB_DEFAULT_STRING_COUNT)]
