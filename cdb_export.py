@@ -151,6 +151,16 @@ def encode_type(card):
     elif card.category == CardCategory.TRAP:
         t |= _TYPE["TRAP"]
         t |= _SPELLTRAP_SUBTYPE.get(card.spell_trap_type, 0)
+        # A Trap Monster may also carry monster subtypes (Effect / Tuner /
+        # ability such as Toon). The base type stays a Trap; these are extra
+        # bits, mirroring how the monster path encodes them.
+        if card.is_trap_monster:
+            if card.is_effect:
+                t |= _TYPE["EFFECT"]
+            if card.is_tuner:
+                t |= _TYPE["TUNER"]
+            if card.ability in _ABILITY:
+                t |= _ABILITY[card.ability]
     return t
 
 
