@@ -220,6 +220,9 @@ def _apply_form(card, form):
             card.level = _int_or_none(form.get("tm_level"))
             card.atk = _int_or_none(form.get("tm_atk"))
             card.def_ = _int_or_none(form.get("tm_def"))
+            card.is_effect = "tm_is_effect" in form
+            card.is_tuner = "tm_is_tuner" in form
+            card.ability = _enum_or_none(MonsterAbility, form.get("tm_ability"))
         else:
             card.attribute = card.race = None
             card.level = card.atk = card.def_ = None
@@ -272,6 +275,9 @@ def _formdata_from_card(card):
         "tm_level": card.level if (card.is_trap_monster and card.level is not None) else "",
         "tm_atk": card.atk if (card.is_trap_monster and card.atk is not None) else "",
         "tm_def": card.def_ if (card.is_trap_monster and card.def_ is not None) else "",
+        "tm_is_effect": bool(card.is_trap_monster and card.is_effect),
+        "tm_is_tuner": bool(card.is_trap_monster and card.is_tuner),
+        "tm_ability": card.ability.name if (card.is_trap_monster and card.ability) else "",
         "effect_conditions": card.effect_conditions or "",
         "effect_text": card.effect_text or "",
         "materials": card.materials or "",
@@ -285,7 +291,7 @@ _SCALAR_KEYS = ["name", "category", "set_id", "art_image", "render_image", "cdb_
                 "summon_type", "ability", "attribute", "race", "level", "pendulum_scale",
                 "atk", "def_", "spell_subtype", "trap_subtype", "effect_conditions",
                 "effect_text", "materials", "monster_conditions", "monster_effect",
-                "tm_attribute", "tm_race", "tm_level", "tm_atk", "tm_def"]
+                "tm_attribute", "tm_race", "tm_level", "tm_atk", "tm_def", "tm_ability"]
 
 
 def _formdata_from_request(form):
@@ -295,6 +301,8 @@ def _formdata_from_request(form):
     d["is_pendulum"] = "is_pendulum" in form
     d["is_tuner"] = "is_tuner" in form
     d["is_trap_monster"] = "is_trap_monster" in form
+    d["tm_is_effect"] = "tm_is_effect" in form
+    d["tm_is_tuner"] = "tm_is_tuner" in form
     d["arrows"] = form.getlist("link_arrows")
     d["setcodes"] = [form.get(f"setcode_{i}", "") for i in range(CDB_MAX_SETCODES)]
     d["strings"] = [form.get(f"string_{i}", "") for i in range(CDB_DEFAULT_STRING_COUNT)]

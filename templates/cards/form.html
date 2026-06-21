@@ -235,6 +235,18 @@
           </select>
         </div>
         <div class="field">
+          <label for="tm_ability">Subtype</label>
+          <select id="tm_ability" name="tm_ability">
+            <option value="">—</option>
+            {% for ab in abilities %}
+              <option value="{{ ab.name }}" {{ 'selected' if data.tm_ability == ab.name }}>{{ ab.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
           <label for="tm_atk">ATK</label>
           <input id="tm_atk" name="tm_atk" type="number" value="{{ data.tm_atk }}" />
         </div>
@@ -242,6 +254,13 @@
           <label for="tm_def">DEF</label>
           <input id="tm_def" name="tm_def" type="number" value="{{ data.tm_def }}" />
         </div>
+      </div>
+
+      <div class="checks">
+        <label class="check"><input type="checkbox" name="tm_is_effect" id="tm_is_effect"
+          {{ 'checked' if data.tm_is_effect }}/> Effect</label>
+        <label class="check"><input type="checkbox" name="tm_is_tuner" id="tm_is_tuner"
+          {{ 'checked' if data.tm_is_tuner }}/> Tuner</label>
       </div>
     </fieldset>
 
