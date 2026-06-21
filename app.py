@@ -30,6 +30,27 @@ def _ensure_card_columns():
             conn.execute(text(f"ALTER TABLE card ADD COLUMN {name} {typ}"))
 
 
+def _widen_text_columns():
+    """Lift VARCHAR length caps on free-text columns (currently the per-card
+    article caption) for engines that enforce them. Postgres enforces
+    VARCHAR(n); SQLite ignores it, so this is a no-op there. Idempotent."""
+    if db.engine.dialect.name != "postgresql":
+        return
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    targets = {"article_card": ["caption"]}
+    with db.engine.begin() as conn:
+        for table, cols in targets.items():
+            if table not in insp.get_table_names():
+                continue
+            types = {c["name"]: str(c["type"]).upper()
+                     for c in insp.get_columns(table)}
+            for col in cols:
+                if col in types and "TEXT" not in types[col]:
+                    conn.execute(
+                        text(f"ALTER TABLE {table} ALTER COLUMN {col} TYPE TEXT"))
+
+
 def _bootstrap_admin_from_env(app):
     """Create the first admin from env vars, only if no admin exists yet.
     Lets you bootstrap on hosts with no shell (Render free tier). Safe to
@@ -150,6 +171,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         _ensure_card_columns()   # add post-hoc columns on existing databases
+        _widen_text_columns()    # drop legacy length caps on free-text columns
         # Populate sample content on first run so the homepage isn't empty.
         # Only seeds an empty DB, and only when SEED_DEMO_DATA is enabled.
         if app.config.get("SEED_DEMO_DATA", True):

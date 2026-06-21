@@ -84,20 +84,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const meta = byId[String(c.card_id)] || { name: "Unknown card #" + c.card_id, type_line: "" };
     const row = document.createElement("div");
     row.className = "acard";
+    const hasComment = !!(c.caption && c.caption.trim());
     row.innerHTML = `
       <div class="acard__main">
         <div class="acard__name">${esc(meta.name)}
           <span class="acard__type">${esc(meta.type_line)}</span></div>
-        <input type="text" class="acard__caption" maxlength="400"
-               placeholder="Caption — lore, a tip, a comment…">
+        <button type="button" class="acard__addcomment link-gold"${hasComment ? " hidden" : ""}>+ Comment</button>
+        <textarea class="acard__caption" rows="2"
+                  placeholder="A comment, a tip, lore…"${hasComment ? "" : " hidden"}></textarea>
       </div>
       <div class="acard__bar">
         <button type="button" class="link-gold" data-a="cup">↑</button>
         <button type="button" class="link-gold" data-a="cdown">↓</button>
         <button type="button" class="link-danger" data-a="cdel">✕</button>
       </div>`;
-    row.querySelector(".acard__caption").value = c.caption || "";
-    row.querySelector(".acard__caption").addEventListener("input", (e) => { c.caption = e.target.value; });
+    const caption = row.querySelector(".acard__caption");
+    const addComment = row.querySelector(".acard__addcomment");
+    caption.value = c.caption || "";
+    caption.addEventListener("input", (e) => { c.caption = e.target.value; });
+    addComment.addEventListener("click", () => {
+      addComment.hidden = true;
+      caption.hidden = false;
+      caption.focus();
+    });
     row.querySelector('[data-a="cup"]').addEventListener("click", () => moveCard(sec, ci, -1));
     row.querySelector('[data-a="cdown"]').addEventListener("click", () => moveCard(sec, ci, 1));
     row.querySelector('[data-a="cdel"]').addEventListener("click", () => { sec.cards.splice(ci, 1); render(); });
