@@ -11,6 +11,7 @@ fields for convenience — the server is the source of truth.
 from flask import (
     Blueprint, abort, flash, redirect, render_template, request, url_for,
 )
+from urllib.parse import urlsplit, urlunsplit
 from flask_login import current_user, login_required
 
 from extensions import db
@@ -318,6 +319,22 @@ def _taken_cdb_ids(exclude_id=None):
     return {str(c.cdb_id): c.name for c in q.all()}
 
 
+def _safe_return(url):
+    """A same-site relative URL to return to after editing a card, or None.
+    Guards against open redirects and avoids bouncing back into the editor."""
+    if not url:
+        return None
+    parts = urlsplit(url.strip())
+    if parts.netloc and parts.netloc != urlsplit(request.host_url).netloc:
+        return None
+    path = parts.path or "/"
+    if not path.startswith("/") or path.startswith("//"):
+        return None
+    if path.startswith("/cards/") and (path.endswith("/edit") or path == "/cards/new"):
+        return None  # don't return into the card editor itself
+    return urlunsplit(("", "", path, parts.query, ""))
+
+
 # ---------------------------------------------------------------------- routes
 @cards_bp.route("/")
 def list_cards():
@@ -356,9 +373,15 @@ def edit(card_id):
     card = Card.query.get_or_404(card_id)
     owner_or_admin(card.owner_id)
     if request.method == "POST":
+        return_to = _safe_return(request.form.get("return_to"))
         try:
             _apply_form(card, request.form)
             db.session.commit()
+            # Came in from somewhere (an article, search…): show a brief success
+            # interstitial, then bounce back there. Otherwise behave as before.
+            if return_to:
+                return render_template("cards/saved.html", card=card,
+                                       return_to=return_to)
             flash(f"Saved “{card.name}”.", "success")
             return redirect(url_for("cards.edit", card_id=card.id))
         except (ValueError, KeyError) as exc:
@@ -367,9 +390,10 @@ def edit(card_id):
             return render_template("cards/form.html", mode="edit", card=card,
                                    data=_formdata_from_request(request.form),
                                    taken_cdb_ids=_taken_cdb_ids(card.id),
-                                   **_enum_context())
+                                   return_to=return_to, **_enum_context())
+    return_to = _safe_return(request.args.get("next") or request.referrer)
     return render_template("cards/form.html", mode="edit", card=card,
-                           data=_formdata_from_card(card),
+                           data=_formdata_from_card(card), return_to=return_to,
                            taken_cdb_ids=_taken_cdb_ids(card.id), **_enum_context())
 
 
