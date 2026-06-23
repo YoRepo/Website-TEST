@@ -2,5 +2,6 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 Flask-WTF
+Pillow
 gunicorn
 psycopg2-binary

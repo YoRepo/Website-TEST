@@ -24,6 +24,10 @@ from models import (
 
 cards_bp = Blueprint("cards", __name__)
 
+# Real TCG card proportions — must match the display boxes in style.css
+# (aspect-ratio: 59 / 86) and the CardSVG canvas (590×860).
+CARD_ASPECT = (59, 86)
+
 _EXTRA_DECK = {MonsterSummonType.FUSION, MonsterSummonType.SYNCHRO,
                MonsterSummonType.XYZ, MonsterSummonType.LINK}
 
@@ -65,13 +69,14 @@ def _clean(raw):
     raw = (raw or "").strip()
     return raw or None
 
-def _image_field(name, form):
+def _image_field(name, form, crop_aspect=None):
     """Prefer a newly uploaded file; otherwise keep the text path/URL.
-    Clearing the text box with no file removes the image."""
+    Clearing the text box with no file removes the image.
+    `crop_aspect` (w, h) center-crops a newly uploaded file on the way in."""
     file = request.files.get(f"{name}_file")
     if file and file.filename:
         try:
-            return save_upload(file)
+            return save_upload(file, crop_aspect=crop_aspect)
         except UploadError as exc:
             raise ValueError(str(exc))   # surfaces via the existing flash() path
     return _clean(form.get(name))
@@ -96,7 +101,10 @@ def _apply_form(card, form):
         card.set_id = int(set_id) if set_id else None
 
     card.art_image = _image_field("art_image", form)
-    card.render_image = _image_field("render_image", form)
+    # Render images display in 59:86 card boxes (object-fit: cover); crop the
+    # uploaded file to match so margins are gone from the file too, not just
+    # clipped at display time. See CARD_ASPECT.
+    card.render_image = _image_field("render_image", form, crop_aspect=CARD_ASPECT)
 
     if card.category == CardCategory.MONSTER:
         card.is_effect = "is_effect" in form
