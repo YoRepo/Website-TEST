@@ -286,6 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const s = script.selectionStart, end = script.selectionEnd;
       script.value = script.value.slice(0, s) + "\t" + script.value.slice(end);
       script.selectionStart = script.selectionEnd = s + 1;
+      // Programmatic edits don't fire "input"; dispatch one so the string-
+      // reference highlighting and notes stay in sync after a Tab insert.
+      script.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 

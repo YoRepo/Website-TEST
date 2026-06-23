@@ -722,6 +722,43 @@ img { max-width: 100%; }
   resize: vertical;
 }
 
+/* String-reference highlighting in the Lua editor.
+   A mirror layer paints amber behind every aux.Stringid(id, n) call; the
+   textarea floats on top, transparent, so the caret and editing are normal.
+   The two layers must share identical text metrics to stay aligned. */
+.codewrap { position: relative; }
+.codewrap .codehl {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: transparent;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono",
+    Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: hidden;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  pointer-events: none;
+  z-index: 0;
+}
+.codewrap textarea.codearea {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+.codehl__ref {
+  color: transparent;
+  background: rgba(227, 179, 65, 0.28);   /* soft amber, from --gold */
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(227, 179, 65, 0.45);
+}
+
 .cardform input[type="text"],
 .cardform input[type="number"],
 .cardform select,
@@ -777,13 +814,20 @@ img { max-width: 100%; }
 .setcodes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .setcodes__input { width: 7rem; font-family: ui-monospace, monospace; }
 .strings { display: flex; flex-direction: column; gap: 0.4rem; }
-.strings__row { display: flex; align-items: center; gap: 0.6rem; }
+.strings__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
 .strings__id {
   flex: 0 0 1.6rem; text-align: center; font-family: ui-monospace, monospace;
   font-size: 0.85rem; color: var(--muted-2);
   border: 1px solid var(--line, #3a3a3a); border-radius: 4px; padding: 0.1rem 0;
 }
 .strings__input { flex: 1 1 auto; }
+/* Note shown under a string input when the Lua script references its id. */
+.strings__note {
+  flex: 0 0 100%;
+  margin: 0 0 0.15rem 2.2rem;   /* line up under the input, past the id chip */
+  font-size: 0.8rem;
+  color: var(--gold-soft);
+}
 
 /* ---- Card image field + preview ---- */
 .imgfield { display: flex; gap: 1rem; align-items: stretch; }
