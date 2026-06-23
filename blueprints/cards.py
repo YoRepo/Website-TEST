@@ -123,13 +123,19 @@ def _parse_strings(form):
     return [(form.get(f"string_{i}") or "").strip()
             for i in range(CDB_DEFAULT_STRING_COUNT)]
 
-def _image_field(name, form):
+# Real TCG card proportions — render uploads are center-cropped to this so the
+# stored file matches what the card widgets show (they object-fit: cover to it).
+CARD_ASPECT = 59 / 86
+
+
+def _image_field(name, form, crop_aspect=None):
     """Prefer a newly uploaded file; otherwise keep the text path/URL.
-    Clearing the text box with no file removes the image."""
+    Clearing the text box with no file removes the image.
+    `crop_aspect` center-crops an uploaded file before storing it."""
     file = request.files.get(f"{name}_file")
     if file and file.filename:
         try:
-            return save_upload(file)
+            return save_upload(file, crop_aspect=crop_aspect)
         except UploadError as exc:
             raise ValueError(str(exc))   # surfaces via the existing flash() path
     return _clean(form.get(name))
@@ -154,7 +160,7 @@ def _apply_form(card, form):
         card.set_id = int(set_id) if set_id else None
 
     card.art_image = _image_field("art_image", form)
-    card.render_image = _image_field("render_image", form)
+    card.render_image = _image_field("render_image", form, crop_aspect=CARD_ASPECT)
 
     # EDOPro export metadata — independent of card category.
     card.cdb_id = _parse_cdb_id(form, card)
