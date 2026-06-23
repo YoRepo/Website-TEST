@@ -27,6 +27,9 @@
         data-static="{{ url_for('static', filename='') }}"
         action="{{ url_for('cards.edit', card_id=card.id) if mode == 'edit' else url_for('cards.new') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {# Where to return after a successful edit (set when arriving from an
+       article, search results, etc.). Empty on plain new-card creation. #}
+    <input type="hidden" name="return_to" value="{{ return_to|default('') }}">
 
     {# ---------- Name ---------- #}
     <div class="field">

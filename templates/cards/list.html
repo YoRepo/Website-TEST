@@ -17,7 +17,7 @@
   <tbody>
     {% for card in cards %}
     <tr>
-      <td><a class="cardtable__name" href="{{ url_for('cards.edit', card_id=card.id) }}">{{ card.name }}</a></td>
+      <td><a class="cardtable__name" href="{{ url_for('cards.edit', card_id=card.id, next=request.full_path) }}">{{ card.name }}</a></td>
       <td class="cardtable__type">
         {% if card.is_monster %}
           {{ card.display_attribute }} ·
@@ -37,7 +37,7 @@
       <td class="cardtable__actions">
         {% set mine = current_user.is_authenticated and card.owner_id == current_user.id %}
         {% if mine or (current_user.is_authenticated and current_user.is_admin) %}
-        <a class="link-gold" href="{{ url_for('cards.edit', card_id=card.id) }}">Edit</a>
+        <a class="link-gold" href="{{ url_for('cards.edit', card_id=card.id, next=request.full_path) }}">Edit</a>
         {% endif %}
         {% if mine or (current_user.is_authenticated and current_user.is_staff) %}
         <form method="post" action="{{ url_for('cards.delete', card_id=card.id) }}"

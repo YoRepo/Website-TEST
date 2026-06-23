@@ -670,6 +670,18 @@ img { max-width: 100%; }
   gap: 1rem;
 }
 .field label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+/* Post-edit "Saved" interstitial. */
+.saved { display: flex; justify-content: center; padding: 4rem 1rem; }
+.saved__card { text-align: center; max-width: 30rem; }
+.saved__check {
+  width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; color: #b9e6bf;
+  background: rgba(63, 138, 68, 0.16); border: 1px solid rgba(63, 138, 68, 0.5);
+}
+.saved__title { margin: 0 0 0.35rem; }
+.saved__hint { color: var(--muted-2); margin: 0 0 1.25rem; }
+
 .field__hint { color: var(--muted-2); font-weight: 400; }
 
 /* Inline field-level validation error (e.g. duplicate Card ID). */

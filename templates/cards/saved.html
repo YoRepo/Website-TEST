@@ -1,0 +1,21 @@
+{# path: templates/cards/saved.html -#}
+{# Brief success interstitial shown after editing a card when we know where the
+   user came from. Confirms the save, then bounces back to `return_to`. #}
+{% extends "base.html" %}
+{% block title %}Saved · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="saved">
+  <div class="saved__card">
+    <div class="saved__check" aria-hidden="true">✓</div>
+    <h1 class="saved__title">Saved “{{ card.name }}”.</h1>
+    <p class="saved__hint">Taking you back…</p>
+    <p><a class="btn btn--ghost saved__link" href="{{ return_to }}">Continue now</a></p>
+  </div>
+</section>
+
+<script>
+  setTimeout(function () { window.location.href = {{ return_to|tojson }}; }, 1300);
+</script>
+<noscript><meta http-equiv="refresh" content="1;url={{ return_to }}"></noscript>
+{% endblock %}

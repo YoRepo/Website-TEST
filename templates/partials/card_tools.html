@@ -12,7 +12,7 @@
     </svg>
   </summary>
   <div class="menu__panel card-tools__panel">
-    <a href="{{ url_for('cards.edit', card_id=card.id) }}">Edit card</a>
+    <a href="{{ url_for('cards.edit', card_id=card.id, next=request.full_path) }}">Edit card</a>
   </div>
 </details>
 {% endif %}
