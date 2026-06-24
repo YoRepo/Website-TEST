@@ -14,6 +14,16 @@
       </div>
     {% endif %}
     {% include "partials/card_tools.html" %}
+    <button type="button" class="copycard" data-copytext='{{ card.copy_text|tojson }}'
+            aria-label="Copy card as text" title="Copy this card as text">
+      <svg class="copycard__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"
+              d="M9 9h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z"/>
+        <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+              d="M5 15a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1"/>
+      </svg>
+      <span class="copycard__label">Copy text</span>
+    </button>
   </div>
 
   <div class="showcase__detail">

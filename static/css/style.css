@@ -1366,6 +1366,29 @@ img { max-width: 100%; }
 /* In the showcase the tools sit in the render column, under the image. */
 .showcase__render .card-tools { margin-top: 0.6rem; }
 
+/* "Copy card as text" button under the immersive render. Available to everyone
+   (unlike the owner-only card-tools menu). */
+.showcase__render .copycard {
+  margin-top: 0.6rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  width: 100%; padding: 0.45rem 0.7rem;
+  font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  background: var(--surface-3); border: 1px solid var(--hair-2);
+  border-radius: 10px; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.showcase__render .copycard:hover {
+  color: var(--gold); border-color: var(--gold-soft);
+}
+.showcase__render .copycard:focus-visible {
+  outline: none; border-color: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-dim);
+}
+.copycard__icon { display: block; flex: none; }
+.copycard.is-copied {
+  color: var(--ink); background: var(--gold); border-color: var(--gold);
+}
+.copycard.is-copyfail { color: #e57373; border-color: #e57373; }
+
 /* =========================================================================
    Article display switch — reading (showcase rows) vs grid (4-wide tiles).
    Both are server-rendered; main.js flips data-view live.
