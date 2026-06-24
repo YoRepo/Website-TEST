@@ -42,6 +42,14 @@ class Config:
     S3_PUBLIC_BASE = os.environ.get("S3_PUBLIC_BASE", "")  # public URL base for objects
     S3_REGION = os.environ.get("S3_REGION", "auto")
 
+    # --- GitHub script import --------------------------------------------
+    # Optional. Unset works fine for public repos (GitHub allows 60 anonymous
+    # API requests/hour/IP). Set a fine-grained or classic PAT to raise that
+    # limit (and to read private repos). Used only server-side by the card
+    # editor's "Import .lua from GitHub" widget — never exposed to the browser.
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+    GITHUB_API_TIMEOUT = int(os.environ.get("GITHUB_API_TIMEOUT", "15"))
+
     # --- Session / cookie hardening --------------------------------------
     SESSION_COOKIE_HTTPONLY = True            # JS cannot read the session cookie
     SESSION_COOKIE_SAMESITE = "Lax"           # CSRF defence-in-depth

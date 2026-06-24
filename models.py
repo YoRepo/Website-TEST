@@ -174,6 +174,11 @@ class User(UserMixin, db.Model):
     active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Remembered GitHub locations the user has imported Lua card scripts from,
+    # for one-click re-browsing in the card editor. A most-recent-first list of
+    # dicts: {owner, repo, ref, path, label, last_used}. See blueprints/github.py.
+    lua_import_sources = db.Column(db.JSON, nullable=True, default=list)
+
     sets = db.relationship("CardSet", backref="owner", lazy="selectin")
     cards = db.relationship("Card", backref="owner", lazy="selectin")
     articles = db.relationship("Article", backref="author", lazy="selectin")
