@@ -447,13 +447,13 @@ class Card(db.Model):
 
     @property
     def type_line(self):
-        """Human type line, e.g. '[ Illusion / Effect ]' or '[ Spell / Field ]'."""
+        """Human type line. Monsters read '[ Illusion / Effect ]'; Spell/Trap
+        cards read their subtype as an adjective — '[ Field Spell ]',
+        '[ Counter Trap ]' — never the slash form used for monsters."""
         if self.is_spell:
-            sub = f" / {self.spell_trap_type.value}" if self.spell_trap_type else ""
-            return f"[ Spell{sub} ]"
+            return f"[ {self.spell_trap_type.value} Spell ]" if self.spell_trap_type else "[ Spell ]"
         if self.is_trap:
-            sub = f" / {self.spell_trap_type.value}" if self.spell_trap_type else ""
-            return f"[ Trap{sub} ]"
+            return f"[ {self.spell_trap_type.value} Trap ]" if self.spell_trap_type else "[ Trap ]"
         parts = []
         if self.race:
             parts.append(self.race.value)
