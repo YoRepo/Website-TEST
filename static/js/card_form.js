@@ -26,8 +26,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const preview = document.getElementById("art-preview");
   const artFile = $("#art_image_file");
   const renderFile = $("#render_image_file");
+  const artCurrent = $("#art_image_current");
+  const renderCurrent = $("#render_image_current");
+  const artRemove = $("#art_image_remove");
+  const renderRemove = $("#render_image_remove");
   let artObjURL = "";
   let renderObjURL = "";
+
+  // The effective image reference for a field: a pending "remove" wins (blank),
+  // otherwise the typed URL, otherwise the already-stored ref (an upload path or
+  // prior URL kept in a hidden input — never shown in the editable box).
+  function imgRef(input, current, remove) {
+    if (remove && remove.checked) return "";
+    return (input && input.value.trim()) || (current ? current.value : "");
+  }
+
+  // Styled upload buttons: show the chosen filename, and let a fresh upload
+  // cancel a pending removal.
+  form.querySelectorAll(".filepick__input").forEach((inp) => {
+    const nameEl = form.querySelector(`[data-filename-for="${inp.id}"]`);
+    inp.addEventListener("change", () => {
+      const f = inp.files && inp.files[0];
+      if (nameEl) nameEl.textContent = f ? f.name : "";
+      const rm = $("#" + inp.id.replace(/_file$/, "") + "_remove");
+      if (f && rm) rm.checked = false;
+    });
+  });
 
   function fileURL(input, prev) {
     if (prev) URL.revokeObjectURL(prev);
@@ -90,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Image preview -----------------------------------------------------
   function paintPreview() {
-    const src = artObjURL || window.CardSVG.resolveImageSrc(artInput.value, staticBase);
+    const src = artObjURL || window.CardSVG.resolveImageSrc(imgRef(artInput, artCurrent, artRemove), staticBase);
     if (src) {
       preview.innerHTML = "";
       const img = new Image();
@@ -158,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
       pendScale: parseInt($("#pendulum_scale").value, 10),
       atk: $("#atk").value.trim(), def: $("#def_").value.trim(),
       arrows: Array.from(form.querySelectorAll('input[name="link_arrows"]:checked')).map((c) => c.value),
-      artImage: artObjURL || artInput.value,
+      artImage: artObjURL || imgRef(artInput, artCurrent, artRemove),
       effectConditions: $("#effect_conditions").value.trim(),
       effectText: $("#effect_text").value.trim(),
       materials: $("#materials").value.trim(),
@@ -171,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // live SVG built from the form (useful while you're still designing).
   function renderPreview() {
     if (!previewHost) return;
-    const finalSrc = renderObjURL || window.CardSVG.resolveImageSrc(renderInput ? renderInput.value : "", staticBase);
+    const finalSrc = renderObjURL || window.CardSVG.resolveImageSrc(imgRef(renderInput, renderCurrent, renderRemove), staticBase);
     if (finalSrc) {
       previewHost.innerHTML = '<img class="cardpreview__svg" alt="Card render preview">';
       const im = previewHost.querySelector("img");
