@@ -1,0 +1,22 @@
+{# path: templates/cards/redirecting.html -#}
+{# Brief interstitial that confirms an action, then bounces back to `return_to`.
+   Reused for leaving/cancelling the card editor (see cards.leave); the save
+   flow has its own worded variant in cards/saved.html. #}
+{% extends "base.html" %}
+{% block title %}{{ heading }} · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="saved">
+  <div class="saved__card">
+    <div class="saved__check" aria-hidden="true">{{ icon|default('✓') }}</div>
+    <h1 class="saved__title">{{ heading }}</h1>
+    <p class="saved__hint">Taking you back…</p>
+    <p><a class="btn btn--ghost saved__link" href="{{ return_to }}">Continue now</a></p>
+  </div>
+</section>
+
+<script>
+  setTimeout(function () { window.location.href = {{ return_to|tojson }}; }, 1100);
+</script>
+<noscript><meta http-equiv="refresh" content="1;url={{ return_to }}"></noscript>
+{% endblock %}

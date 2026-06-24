@@ -61,26 +61,42 @@
       </div>
     </div>
 
+    {# Reusable upload-button + URL-box control for an image field. #}
+    {% macro img_upload(id) -%}
+      <div class="filepick">
+        <input id="{{ id }}_file" name="{{ id }}_file" type="file" accept="image/*" class="filepick__input" />
+        <label class="filepick__btn" for="{{ id }}_file">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path fill="currentColor" d="M12 16a1 1 0 0 1-1-1V7.83L8.71 10.1a1 1 0 1 1-1.42-1.4l4-4a1 1 0 0 1 1.42 0l4 4a1 1 0 1 1-1.42 1.4L13 7.83V15a1 1 0 0 1-1 1Zm-7 1a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z"/>
+          </svg>
+          <span>Upload from device</span>
+        </label>
+        <span class="filepick__name" data-filename-for="{{ id }}_file"></span>
+      </div>
+      <input id="{{ id }}" name="{{ id }}" type="url" maxlength="255" inputmode="url"
+             placeholder="…or paste an image URL (https://…)"
+             value="{{ data[id ~ '_url'] }}" />
+      {% if data[id ~ '_has'] %}
+      <label class="check filepick__remove">
+        <input type="checkbox" name="{{ id }}_remove" id="{{ id }}_remove" /> Remove current image</label>
+      {% endif %}
+      <input type="hidden" id="{{ id }}_current" value="{{ data[id] }}" />
+    {%- endmacro %}
+
     {# ---------- Artwork (inside the frame) ---------- #}
     <div class="field">
-      <label for="art_image">Artwork <span class="field__hint">(upload a file, or paste a path/URL)</span></label>
+      <label for="art_image">Artwork <span class="field__hint">(upload from your device, or paste an image URL)</span></label>
       <div class="imgfield">
         <div class="imgpreview" id="art-preview"><span>No image</span></div>
-        <input id="art_image" name="art_image" type="text" maxlength="255"
-               placeholder="cards/my-art.png or https://…" value="{{ data.art_image }}" />
+        <div class="imgfield__controls">{{ img_upload("art_image") }}</div>
       </div>
-      <input id="art_image_file" name="art_image_file" type="file"
-             accept="image/*" style="margin-top:0.5rem;" />
     </div>
 
     {# ---------- Finished render (shown in the left preview & on articles) ---------- #}
     <div class="field">
       <label for="render_image">Card render image
-        <span class="field__hint">(upload a finished card, or paste a path/URL)</span></label>
-      <input id="render_image" name="render_image" type="text" maxlength="255"
-             placeholder="cards/renders/my-card.png or https://…" value="{{ data.render_image }}" />
-      <input id="render_image_file" name="render_image_file" type="file"
-             accept="image/*" style="margin-top:0.5rem;" />
+        <span class="field__hint">(upload a finished card, or paste an image URL)</span></label>
+      <div class="imgfield__controls">{{ img_upload("render_image") }}</div>
     </div>
 
     {# ================= MONSTER ================= #}
@@ -371,7 +387,8 @@
 
     <div class="cardform__actions">
       <button class="btn" type="submit">{{ 'Save changes' if mode == 'edit' else 'Create card' }}</button>
-      <a class="btn btn--ghost" href="{{ url_for('cards.list_cards') }}">Cancel</a>
+      <a class="btn btn--ghost"
+         href="{{ url_for('cards.leave', next=return_to) if return_to else url_for('cards.list_cards') }}">Cancel</a>
     </div>
   </form>
     </div><!-- .cardmaker__form -->

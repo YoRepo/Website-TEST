@@ -11,6 +11,7 @@ fields for convenience — the server is the source of truth.
 from flask import (
     Blueprint, abort, flash, redirect, render_template, request, url_for,
 )
+import re
 from urllib.parse import urlsplit, urlunsplit
 from flask_login import current_user, login_required
 
@@ -128,9 +129,20 @@ def _parse_strings(form):
 CARD_ASPECT = 59 / 86
 
 
-def _image_field(name, form, crop_aspect=None):
-    """Prefer a newly uploaded file; otherwise keep the text path/URL.
-    Clearing the text box with no file removes the image.
+def _is_http_url(val):
+    """True for an absolute http(s) URL — the only kind of *link* we accept in
+    an image text box. Internal site paths are deliberately NOT accepted: an
+    image is either uploaded from the user's device or linked by full URL."""
+    return bool(val) and bool(re.match(r"^https?://", val.strip(), re.I))
+
+
+def _image_field(name, form, crop_aspect=None, current=None):
+    """Resolve one image reference, in priority order:
+      1. a newly uploaded file (saved, optionally center-cropped), else
+      2. an explicit "remove" tick → cleared, else
+      3. a pasted http(s) URL (rejected if it isn't one), else
+      4. whatever was already stored (`current`) — so an existing upload is
+         preserved across edits without ever exposing its internal path.
     `crop_aspect` center-crops an uploaded file before storing it."""
     file = request.files.get(f"{name}_file")
     if file and file.filename:
@@ -138,7 +150,15 @@ def _image_field(name, form, crop_aspect=None):
             return save_upload(file, crop_aspect=crop_aspect)
         except UploadError as exc:
             raise ValueError(str(exc))   # surfaces via the existing flash() path
-    return _clean(form.get(name))
+    if form.get(f"{name}_remove"):
+        return None
+    typed = (form.get(name) or "").strip()
+    if typed:
+        if not _is_http_url(typed):
+            raise ValueError("Image links must be a full URL starting with "
+                             "http:// or https:// — or upload a file instead.")
+        return typed
+    return current
 
 def _apply_form(card, form):
     """Populate `card` from submitted `form`, normalised by category.
@@ -159,8 +179,11 @@ def _apply_form(card, form):
         set_id = (form.get("set_id") or "").strip()
         card.set_id = int(set_id) if set_id else None
 
-    card.art_image = _image_field("art_image", form)
-    card.render_image = _image_field("render_image", form, crop_aspect=CARD_ASPECT)
+    # Pass the currently-stored ref as the fallback so an existing upload is
+    # kept when the user neither replaces, removes, nor relinks it.
+    card.art_image = _image_field("art_image", form, current=card.art_image)
+    card.render_image = _image_field("render_image", form,
+                                     crop_aspect=CARD_ASPECT, current=card.render_image)
 
     # EDOPro export metadata — independent of card category.
     card.cdb_id = _parse_cdb_id(form, card)
@@ -260,8 +283,16 @@ def _formdata_from_card(card):
         "name": card.name or "",
         "category": card.category.name if card.category else "MONSTER",
         "set_id": str(card.set_id) if card.set_id else "",
+        # `*_image` is the raw stored ref (used only for the live preview);
+        # `*_image_url` is shown in the editable box and is non-empty only when
+        # the stored ref is a URL (an internal upload path is never exposed);
+        # `*_image_has` toggles the "Remove image" control.
         "art_image": card.art_image or "",
+        "art_image_url": card.art_image if _is_http_url(card.art_image) else "",
+        "art_image_has": bool(card.art_image),
         "render_image": card.render_image or "",
+        "render_image_url": card.render_image if _is_http_url(card.render_image) else "",
+        "render_image_has": bool(card.render_image),
         "is_effect": bool(card.is_effect),
         "is_pendulum": bool(card.is_pendulum),
         "is_tuner": bool(card.is_tuner),
@@ -313,6 +344,10 @@ def _formdata_from_request(form):
     d["arrows"] = form.getlist("link_arrows")
     d["setcodes"] = [form.get(f"setcode_{i}", "") for i in range(CDB_MAX_SETCODES)]
     d["strings"] = [form.get(f"string_{i}", "") for i in range(CDB_DEFAULT_STRING_COUNT)]
+    # Re-show the typed URL (the only image text we accept) on a failed submit.
+    for name in ("art_image", "render_image"):
+        d[f"{name}_url"] = form.get(name, "")
+        d[f"{name}_has"] = bool(form.get(name))
     return d
 
 
@@ -401,6 +436,20 @@ def edit(card_id):
     return render_template("cards/form.html", mode="edit", card=card,
                            data=_formdata_from_card(card), return_to=return_to,
                            taken_cdb_ids=_taken_cdb_ids(card.id), **_enum_context())
+
+
+@cards_bp.route("/leave")
+@login_required
+def leave():
+    """Cancel out of the editor the same way a save exits: through the brief
+    redirect interstitial back to wherever the user came from. Falls straight
+    back to the card list when there's no safe place to return to."""
+    return_to = _safe_return(request.args.get("next"))
+    if not return_to:
+        return redirect(url_for("cards.list_cards"))
+    return render_template("cards/redirecting.html",
+                           heading="Left the editor — no changes saved.",
+                           icon="↩", return_to=return_to)
 
 
 @cards_bp.route("/<int:card_id>/delete", methods=["POST"])
