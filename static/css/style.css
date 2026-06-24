@@ -1389,6 +1389,35 @@ img { max-width: 100%; }
 }
 .copycard.is-copyfail { color: #e57373; border-color: #e57373; }
 
+/* Inline "copy text" pill used for a whole section and the whole article
+   (next to the section heading / in the results bar). */
+.copycard--inline {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  margin: 0; padding: 0.4rem 0.85rem; width: auto;
+  font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  background: var(--surface-3); border: 1px solid var(--hair-2);
+  border-radius: 999px; cursor: pointer; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copycard--inline:hover { color: var(--gold); border-color: var(--gold-soft); }
+.copycard--inline:focus-visible {
+  outline: none; border-color: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+.results-bar__tools { display: inline-flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+
+/* Section heading row: the heading carries the underline; the copy pill rides
+   on the right. Works with or without a heading (cards-only sections). */
+.article-section__head {
+  display: flex; align-items: center; gap: 1rem;
+  margin: 0 0 0.5rem; padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--hair);
+}
+.article-section__head .article-section__h {
+  margin: 0; padding: 0; border: none;
+}
+.article-section__head .copycard--inline { margin-left: auto; flex: none; }
+
 /* =========================================================================
    Article display switch — reading (showcase rows) vs grid (4-wide tiles).
    Both are server-rendered; main.js flips data-view live.

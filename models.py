@@ -654,6 +654,13 @@ class ArticleSection(db.Model):
     def __repr__(self):
         return f"<ArticleSection id={self.id} heading={self.heading!r}>"
 
+    @property
+    def copy_text(self):
+        """Formatted plaintext of every card in this section, blank-line
+        separated. Cards only — the section heading and prose are not
+        included (see Card.copy_text)."""
+        return "\n\n".join(link.card.copy_text for link in self.cards if link.card)
+
 
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -712,6 +719,24 @@ class Article(db.Model):
     def card_count(self):
         """Cards featured, clamped to 1–3 for the stage widget."""
         return max(1, min(3, len(self.card_links)))
+
+    @property
+    def copy_text(self):
+        """Formatted plaintext of every featured card. Loose cards (not in a
+        section) come first; then each section is prefaced by its heading
+        ('Heading:') followed by that section's cards. Card text only — article
+        and section prose, and comments, are deliberately excluded."""
+        blocks = []
+        loose = [l.card for l in self.card_links
+                 if l.section_id is None and l.card]
+        if loose:
+            blocks.append("\n\n".join(c.copy_text for c in loose))
+        for section in self.sections:
+            body = section.copy_text
+            if not body:
+                continue
+            blocks.append(f"{section.heading}:\n{body}" if section.heading else body)
+        return "\n\n".join(blocks)
 
     def __repr__(self):
         return f"<Article id={self.id} title={self.title!r}>"

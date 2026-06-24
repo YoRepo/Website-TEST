@@ -4,6 +4,21 @@
 {% block title %}{{ article.title }} · {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
+{# Copy button (formatted card text) for one section's cards. #}
+{% macro section_copy(section) -%}
+  {% if section.cards -%}
+  <button type="button" class="copycard copycard--inline" data-copytext='{{ section.copy_text|tojson }}'
+          aria-label="Copy this section's cards as text" title="Copy this section's cards as text">
+    <svg class="copycard__icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"
+            d="M9 9h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z"/>
+      <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+            d="M5 15a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1"/>
+    </svg>
+    <span class="copycard__label">Copy section</span>
+  </button>
+  {%- endif %}
+{%- endmacro %}
 {% set byline = (article.author.display_name or article.author.username) if article.author else 'Unknown' %}
 <article class="detail detail--wide">
   <p class="detail__back"><a href="{{ url_for('main.index') }}">← Back to the gallery</a></p>
@@ -27,6 +42,19 @@
      upgrades it to an instant in-page toggle between reading and grid. #}
   <div class="results-bar">
     <p class="results-note">Featured cards</p>
+    <div class="results-bar__tools">
+      {% if article.card_links %}
+      <button type="button" class="copycard copycard--inline" data-copytext='{{ article.copy_text|tojson }}'
+              aria-label="Copy all cards as text" title="Copy every featured card as text">
+        <svg class="copycard__icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"
+                d="M9 9h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                d="M5 15a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1"/>
+        </svg>
+        <span class="copycard__label">Copy all cards</span>
+      </button>
+      {% endif %}
     <div class="view-toggle" role="group" aria-label="Article display"
          data-target="#article-views" data-param="aview">
       <a class="view-toggle__btn {{ 'is-active' if aview == 'reading' }}"
@@ -51,6 +79,7 @@
         Grid
       </a>
     </div>
+    </div><!-- .results-bar__tools -->
   </div>
 
   <div class="article-views" id="article-views" data-view="{{ aview }}">
@@ -67,7 +96,12 @@
 
       {% for section in article.sections %}
         <section class="article-section">
-          {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+          {% if section.heading or section.cards %}
+          <div class="article-section__head">
+            {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+            {{ section_copy(section) }}
+          </div>
+          {% endif %}
           {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
           <div class="showcase-list">
             {% for link in section.cards %}
@@ -92,7 +126,12 @@
 
       {% for section in article.sections %}
         <section class="article-section">
-          {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+          {% if section.heading or section.cards %}
+          <div class="article-section__head">
+            {% if section.heading %}<h2 class="article-section__h">{{ section.heading }}</h2>{% endif %}
+            {{ section_copy(section) }}
+          </div>
+          {% endif %}
           {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
           <div class="card-grid">
             {% for link in section.cards %}
