@@ -346,6 +346,22 @@
       <legend>Card script (.lua)</legend>
       <p class="field__hint">The card's effect script. Packed into the .ypk as
         <code>script/c&lt;Card&nbsp;ID&gt;.lua</code> — set a Card ID above for it to be included.</p>
+
+      {# Import-from-GitHub widget. Progressively enhanced: with JS off the
+         textarea below is still a plain editable field. #}
+      <div class="ghimport" id="ghimport">
+        <div class="ghimport__bar">
+          <button type="button" class="btn btn--ghost ghimport__open" id="gh-open">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+            </svg>
+            Import .lua from GitHub
+          </button>
+          {# Remembered locations are injected here by github_import.js. #}
+          <div class="ghimport__recent" id="gh-recent" aria-label="Remembered GitHub locations"></div>
+        </div>
+      </div>
+
       <div class="field">
         <textarea id="script" name="script" class="codearea" rows="14" spellcheck="false"
                   autocomplete="off" autocapitalize="off" wrap="off"
@@ -362,8 +378,50 @@
   </div><!-- .cardmaker__layout -->
 </section>
 
+{# ===== Import .lua from GitHub — modal browser (driven by github_import.js) ===== #}
+<div class="ghpick" id="gh-modal" hidden role="dialog" aria-modal="true"
+     aria-labelledby="gh-modal-title">
+  <div class="ghpick__backdrop" data-gh-close></div>
+  <div class="ghpick__dialog">
+    <header class="ghpick__head">
+      <h2 class="ghpick__title" id="gh-modal-title">Import .lua from GitHub</h2>
+      <button type="button" class="cardpicker__close" data-gh-close aria-label="Close">&times;</button>
+    </header>
+
+    <div class="ghpick__locator">
+      <input class="ghpick__input" id="gh-owner" type="text" autocomplete="off"
+             placeholder="GitHub username or org" aria-label="GitHub username or organization" />
+      <span class="ghpick__slash">/</span>
+      <input class="ghpick__input" id="gh-repo" type="text" autocomplete="off"
+             placeholder="repository (optional)" aria-label="Repository name" />
+      <input class="ghpick__input ghpick__input--ref" id="gh-ref" type="text" autocomplete="off"
+             placeholder="branch" aria-label="Branch (optional)" />
+      <button type="button" class="btn ghpick__go" id="gh-go">Browse</button>
+    </div>
+
+    <nav class="ghpick__crumbs" id="gh-crumbs" hidden aria-label="Path"></nav>
+
+    <div class="ghpick__body">
+      <ul class="ghpick__list" id="gh-list">
+        <li class="ghpick__hint">Enter a username to list repositories, or a
+          username and repository to browse straight to its files.</li>
+      </ul>
+      <div class="ghpick__preview" id="gh-preview" hidden>
+        <div class="ghpick__preview-head">
+          <span class="ghpick__preview-name" id="gh-preview-name"></span>
+          <button type="button" class="btn ghpick__import" id="gh-import-btn">Import into script</button>
+        </div>
+        <pre class="ghpick__code"><code id="gh-preview-code"></code></pre>
+      </div>
+    </div>
+
+    <p class="ghpick__status" id="gh-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
 <script id="taken-cdb-ids" type="application/json">{{ taken_cdb_ids|default({})|tojson }}</script>
 <script src="{{ url_for('static', filename='js/enclosed.js') }}"></script>
 <script src="{{ url_for('static', filename='js/card_form.js') }}"></script>
 <script src="{{ url_for('static', filename='js/card_script_strings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/github_import.js') }}"></script>
 {% endblock %}

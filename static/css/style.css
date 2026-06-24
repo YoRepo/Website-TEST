@@ -1438,3 +1438,148 @@ body.is-modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .cardpicker__tile:hover, .cardpicker__tile:focus-visible { transform: none; }
 }
+/* =========================================================================
+   Import .lua from GitHub — the inline bar under the script box, the
+   remembered-location chips, and the modal repo/file browser.
+   (See static/js/github_import.js.)
+   ========================================================================= */
+.ghimport { margin: 0 0 0.7rem; }
+.ghimport__bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.7rem;
+}
+.ghimport__open {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  margin-top: 0; padding: 0.45rem 0.9rem; font-size: 0.85rem;
+}
+.ghimport__open svg { display: block; }
+
+.ghimport__recent { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.ghchip {
+  display: inline-flex; align-items: stretch;
+  background: var(--surface-3); border: 1px solid var(--hair);
+  border-radius: 999px; overflow: hidden;
+}
+.ghchip__go {
+  max-width: 22ch; padding: 0.3rem 0.2rem 0.3rem 0.75rem;
+  font: inherit; font-size: 0.78rem; color: var(--muted);
+  background: none; border: none; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+.ghchip__go:hover { color: var(--gold); }
+.ghchip__del {
+  padding: 0 0.55rem; font-size: 1rem; line-height: 1; color: var(--muted-2);
+  background: none; border: none; border-left: 1px solid var(--hair);
+  cursor: pointer; transition: color 0.15s, background 0.15s;
+}
+.ghchip__del:hover { color: #e57373; background: rgba(229, 115, 115, 0.1); }
+
+/* --- modal browser ------------------------------------------------------ */
+.ghpick {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.ghpick[hidden] { display: none; }
+.ghpick__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(8, 9, 12, 0.72); backdrop-filter: blur(2px);
+}
+.ghpick__dialog {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  width: min(760px, 100%); max-height: min(84vh, 780px);
+  padding: 1.1rem 1.2rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--hair-2); border-radius: 16px;
+  box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.9);
+}
+.ghpick__head {
+  display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.9rem;
+}
+.ghpick__title {
+  flex: 1; margin: 0; font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 600; color: var(--parchment);
+}
+
+.ghpick__locator {
+  display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.7rem;
+}
+.ghpick__slash { color: var(--muted-2); }
+.ghpick__input {
+  flex: 1; min-width: 0; padding: 0.5rem 0.7rem;
+  font: inherit; font-size: 0.88rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--hair); border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ghpick__input--ref { flex: 0 0 8.5rem; }
+.ghpick__input:focus {
+  outline: none; border-color: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-dim);
+}
+.ghpick__go { margin-top: 0; flex: none; padding: 0.5rem 1.1rem; font-size: 0.85rem; }
+
+.ghpick__crumbs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem;
+  margin-bottom: 0.6rem; font-size: 0.82rem;
+}
+.ghpick__crumb {
+  padding: 0.15rem 0.3rem; font: inherit; font-size: 0.82rem;
+  color: var(--gold-soft); background: none; border: none;
+  border-radius: 6px; cursor: pointer;
+}
+.ghpick__crumb:hover { color: var(--gold); text-decoration: underline; }
+.ghpick__crumb.is-current { color: var(--muted); cursor: default; }
+.ghpick__crumb-sep { color: var(--muted-2); }
+
+.ghpick__body { flex: 1; min-height: 0; overflow-y: auto; }
+.ghpick__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.ghpick__hint { color: var(--muted); padding: 1rem 0.2rem; font-size: 0.88rem; }
+
+.ghpick__row {
+  display: flex; align-items: baseline; gap: 0.6rem; width: 100%;
+  padding: 0.55rem 0.7rem; text-align: left;
+  font: inherit; color: var(--text);
+  background: var(--surface-3); border: 1px solid var(--hair);
+  border-radius: 10px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.ghpick__row:hover:not(:disabled) {
+  border-color: var(--gold-soft); transform: translateX(2px);
+}
+.ghpick__row:disabled { opacity: 0.45; cursor: default; }
+.ghpick__row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ghpick__row-sub { flex: none; font-size: 0.74rem; color: var(--muted-2); }
+.ghpick__row--lua .ghpick__row-name { color: var(--parchment); font-weight: 500; }
+.ghpick__row--lua .ghpick__row-sub { color: var(--gold-soft); }
+.ghpick__row--dir .ghpick__row-name::before { content: "📁 "; }
+.ghpick__row--lua .ghpick__row-name::before { content: "📄 "; }
+
+.ghpick__preview {
+  margin-top: 0.8rem; border: 1px solid var(--hair-2);
+  border-radius: 12px; overflow: hidden; background: var(--ink-stage);
+}
+.ghpick__preview-head {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--hair);
+  background: var(--surface);
+}
+.ghpick__preview-name {
+  flex: 1; font-family: var(--font-display); font-weight: 600;
+  color: var(--parchment); font-size: 0.9rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ghpick__import { margin-top: 0; flex: none; padding: 0.4rem 1rem; font-size: 0.82rem; }
+.ghpick__code {
+  margin: 0; padding: 0.8rem; max-height: 38vh; overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem; line-height: 1.5; color: var(--text);
+  white-space: pre; tab-size: 4;
+}
+
+.ghpick__status { margin: 0.7rem 0 0; min-height: 1.2em; font-size: 0.83rem; color: var(--muted); }
+.ghpick__status[data-kind="error"] { color: #e57373; }
+.ghpick__status[data-kind="busy"] { color: var(--gold-soft); }
+
+@media (max-width: 560px) {
+  .ghpick__locator { flex-wrap: wrap; }
+  .ghpick__input--ref { flex: 1 0 100%; }
+}

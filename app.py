@@ -30,6 +30,22 @@ def _ensure_card_columns():
             conn.execute(text(f"ALTER TABLE card ADD COLUMN {name} {typ}"))
 
 
+def _ensure_user_columns():
+    """Additive, idempotent migration for columns that post-date the original
+    `user` table (mirrors `_ensure_card_columns`). Adds the JSON column that
+    stores each user's remembered GitHub script-import locations. Safe on every
+    boot. NB: ``user`` is a reserved word in Postgres, so quote it."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    if "user" not in insp.get_table_names():
+        return  # fresh DB: create_all() already built it with every column
+    existing = {c["name"] for c in insp.get_columns("user")}
+    if "lua_import_sources" in existing:
+        return
+    with db.engine.begin() as conn:
+        conn.execute(text('ALTER TABLE "user" ADD COLUMN lua_import_sources JSON'))
+
+
 def _widen_text_columns():
     """Lift VARCHAR length caps on free-text columns (currently the per-card
     article caption) for engines that enforce them. Postgres enforces
@@ -119,6 +135,7 @@ def create_app(config_class=Config):
     from blueprints.ypk import ypk_bp
     from blueprints.sets import sets_bp
     from blueprints.auth import auth_bp
+    from blueprints.github import github_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -133,6 +150,7 @@ def create_app(config_class=Config):
     app.register_blueprint(cdb_bp, url_prefix="/cdb")
     app.register_blueprint(ypk_bp, url_prefix="/ypk")
     app.register_blueprint(sets_bp, url_prefix="/sets")
+    app.register_blueprint(github_bp, url_prefix="/github")
 
     # Split an effect string on its leading circled markers (①②…⑳, ⓪) so each
     # numbered effect can be rendered in its own little block.
@@ -171,6 +189,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         _ensure_card_columns()   # add post-hoc columns on existing databases
+        _ensure_user_columns()   # add post-hoc columns to the user table
         _widen_text_columns()    # drop legacy length caps on free-text columns
         # Populate sample content on first run so the homepage isn't empty.
         # Only seeds an empty DB, and only when SEED_DEMO_DATA is enabled.
