@@ -27,6 +27,7 @@ obvious invariants.
 
 import enum
 from datetime import datetime
+import re
 
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -131,6 +132,52 @@ _TRAP_SUBTYPES = {
 
 # Link-arrow position codes (used in Card.link_arrows for Link monsters).
 LINK_ARROW_CODES = ("TL", "T", "TR", "L", "R", "BL", "B", "BR")
+
+# The same codes as emoji, for the plaintext "copy card as text" feature.
+LINK_ARROW_EMOJI = {
+    "TL": "↖️", "T": "⬆️", "TR": "↗️",
+    "L": "⬅️", "R": "➡️",
+    "BL": "↙️", "B": "⬇️", "BR": "↘️",
+}
+# Order arrows are listed in for the plaintext export: around the card's
+# perimeter, counter-clockwise from the top-left, so e.g. {L, B, R} reads
+# ⬅️⬇️➡️ (left, down, right).
+LINK_ARROW_PLAINTEXT_ORDER = ("TL", "L", "BL", "B", "BR", "R", "TR", "T")
+
+# Circled effect markers ①..⑳ plus ⓪. A card's effect text strings them
+# together; we split on them to show each numbered effect on its own line.
+CIRCLED_MARKERS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⓪"
+
+
+def split_effect_parts(text):
+    """Split effect text into a list of ``{"marker", "text"}`` dicts, breaking
+    before each leading circled marker (①, ②, …). Text before the first marker
+    (or text with no markers at all) becomes a single markerless part. Shared by
+    the on-page renderer (the ``effect_parts`` template filter) and the
+    plaintext export (:pyattr:`Card.copy_text`) so they never drift apart."""
+    if not text:
+        return []
+    out = []
+    for chunk in re.split(r"(?=[①-⑳⓪])", text):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if chunk[0] in CIRCLED_MARKERS:
+            out.append({"marker": chunk[0],
+                        "text": chunk[1:].strip().lstrip(":").strip()})
+        else:
+            out.append({"marker": "", "text": chunk})
+    return out
+
+
+def _effect_lines(text):
+    """Yield each effect part of `text` as one plaintext line: ``marker text``
+    (a bare marker when its text is empty, the text alone when unmarked)."""
+    for part in split_effect_parts(text):
+        if part["marker"]:
+            yield f"{part['marker']} {part['text']}".rstrip()
+        else:
+            yield part["text"]
 
 # --- EDOPro .cdb export limits ---------------------------------------------
 # A .cdb packs all set codes into one 64-bit column, 16 bits each → 4 max.
@@ -420,6 +467,87 @@ class Card(db.Model):
             parts.append("Tuner")
         parts.append("Effect" if self.is_effect else "Normal")
         return "[ " + " / ".join(parts) + " ]"
+
+    def _copy_typeline(self):
+        """Compact bracketed type line for the plaintext export, e.g.
+        ``[Rock/Fusion/Pendulum/Effect]``, ``[Ritual Spell]``, ``[Counter Trap]``."""
+        if self.is_spell:
+            sub = self.spell_trap_type.value if self.spell_trap_type else None
+            return f"[{sub} Spell]" if sub else "[Spell]"
+        if self.is_trap:
+            sub = self.spell_trap_type.value if self.spell_trap_type else None
+            return f"[{sub} Trap]" if sub else "[Trap]"
+        parts = []
+        if self.race:
+            parts.append(self.race.value)
+        if self.summon_type:
+            parts.append(self.summon_type.value)
+        if self.ability:
+            parts.append(self.ability.value)
+        if self.is_pendulum:
+            parts.append("Pendulum")
+        if self.is_tuner:
+            parts.append("Tuner")
+        parts.append("Effect" if self.is_effect else "Normal")
+        return "[" + "/".join(parts) + "]"
+
+    @property
+    def copy_text(self):
+        """The card rendered as nicely-formatted plaintext, for the "copy card
+        as text" button on the immersive list/reading view. Mirrors exactly what
+        that view shows (header → rank/scale/arrows → pendulum effect → type line
+        → materials/conditions/effects → stats)."""
+        lines = []
+
+        # Header: Name [ATTRIBUTE] [ID: passcode]
+        head = self.name or "Unnamed card"
+        if self.display_attribute:
+            head += f" [{self.display_attribute}]"
+        if self.cdb_id is not None:
+            head += f" [ID: {self.cdb_id}]"
+        lines.append(head)
+
+        # Rank/Level stars, link arrows, pendulum scale.
+        if self.is_monster:
+            if self.is_link:
+                arrows = "".join(LINK_ARROW_EMOJI[c] for c in LINK_ARROW_PLAINTEXT_ORDER
+                                 if c in (self.link_arrows or []))
+                if arrows:
+                    lines.append(arrows)
+            elif self.level:
+                lines.append("✪" * self.level)
+            if self.is_pendulum and self.pendulum_scale is not None:
+                lines.append(f"◄{self.pendulum_scale}►")
+
+        # Pendulum effect box (sits above the monster type line).
+        if self.is_pendulum and (self.effect_conditions or self.effect_text):
+            lines.append("[Pendulum Effect]")
+            if self.effect_conditions:
+                lines.append(self.effect_conditions)
+            lines.extend(_effect_lines(self.effect_text))
+
+        # Type line.
+        lines.append(self._copy_typeline())
+
+        # Body: materials, then conditions/procedures, then numbered effects.
+        if self.has_materials and self.materials:
+            lines.append(self.materials)
+        conditions = self.monster_conditions if self.is_monster else self.effect_conditions
+        if conditions:
+            lines.append(conditions)
+        effect = self.monster_effect if self.is_monster else self.effect_text
+        lines.extend(_effect_lines(effect))
+
+        # Stats.
+        if self.is_monster:
+            atk = self.atk if self.atk is not None else "?"
+            if self.is_link:
+                lines.append(f"ATK/{atk}\tLINK-{self.link_rating or 0}")
+            else:
+                def_ = self.def_ if self.def_ is not None else "?"
+                lines.append(f"{atk}/{def_}")
+
+        return "\n".join(lines)
 
     @property
     def svg_state(self):
