@@ -315,9 +315,21 @@
     </fieldset>
 
     {# ========== EDOPro .cdb export (set codes + card strings) ========== #}
-    {# No data-section: these apply to every card type, so never hidden. #}
-    <fieldset class="block">
-      <legend>EDOPro export</legend>
+    {# No data-section: these apply to every card type, so never hidden.
+       Collapsed by default: only people generating a .cdb / .ypk touch these,
+       so they shouldn't greet a casual card-maker. Like the script box below,
+       the inputs stay in the DOM while collapsed, so their values still submit
+       and the JS (cdb-id check, string highlighting) keeps working. #}
+    <details class="scriptbox">
+      <summary class="scriptbox__summary">
+        <span class="scriptbox__title">EDOPro export</span>
+        <span class="scriptbox__hint">set codes, strings &amp; passcode · click to expand</span>
+        <svg class="scriptbox__chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" d="M6 9l6 6 6-6"/>
+        </svg>
+      </summary>
+      <div class="scriptbox__body">
       <p class="field__hint">Used only when you generate a .cdb — not shown on the card render.</p>
 
       <div class="field">
@@ -354,14 +366,15 @@
           {% endfor %}
         </div>
       </div>
-    </fieldset>
+      </div><!-- .scriptbox__body -->
+    </details>
 
     {# ========== Card script (.lua) ========== #}
     {# No data-section: applies to every card type, so never hidden. Collapsible
        so it can be folded away when you're not scripting; the textarea stays in
        the DOM and enabled while collapsed, so its value still submits and the
        string-reference highlighting keeps working when reopened. #}
-    <details class="scriptbox" open>
+    <details class="scriptbox">
       <summary class="scriptbox__summary">
         <span class="scriptbox__title">Card script (.lua)</span>
         <span class="scriptbox__hint">click to collapse / expand</span>
