@@ -5,10 +5,13 @@ A factory lets you build multiple app instances with different configs
 (essential for testing) and keeps top-level code free of side effects.
 """
 
-from flask import Flask, render_template
+import secrets
+
+from flask import Flask, g, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
-from extensions import db, login_manager, csrf
+from extensions import db, login_manager, csrf, limiter
 
 def _ensure_card_columns():
     """Additive, idempotent migration for columns that post-date the original
@@ -94,6 +97,11 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Render (and most PaaS) put the app behind a reverse proxy. Trust one hop of
+    # X-Forwarded-* so request.remote_addr is the real client (for rate limiting)
+    # and request.is_secure reflects the original HTTPS request (for HSTS).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     import os
     if (os.environ.get("FLASK_DEBUG", "1") != "1"
             and app.config["SECRET_KEY"] == "dev-only-change-me"):
@@ -116,6 +124,49 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
+
+    # --- Security headers + per-request CSP nonce ----------------------------
+    # A fresh nonce each request lets us run a strict script-src (no
+    # 'unsafe-inline') while still allowing our two tiny inline redirect
+    # scripts, which carry nonce="{{ csp_nonce }}".
+    @app.before_request
+    def _csp_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.context_processor
+    def _inject_nonce():
+        return {"csp_nonce": g.get("csp_nonce", "")}
+
+    @app.after_request
+    def _security_headers(response):
+        nonce = g.get("csp_nonce", "")
+        csp = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            # Cards may link external https art, and JS previews use data:/blob:.
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+        # Only assert HSTS once we know the request actually arrived over HTTPS,
+        # so local http development isn't pinned to https.
+        from flask import request
+        if request.is_secure:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
 
     # Import models so their tables are registered before db.create_all().
     from models import (  # noqa: F401
@@ -181,6 +232,10 @@ def create_app(config_class=Config):
     @app.errorhandler(404)
     def page_not_found(error):
         return render_template("errors/404.html"), 404
+
+    @app.errorhandler(429)
+    def too_many_requests(error):
+        return render_template("errors/429.html"), 429
 
     @app.errorhandler(500)
     def server_error(error):

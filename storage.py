@@ -11,6 +11,21 @@ Card.render_image:
 Both shapes are already understood wherever the app renders a card image
 (CardSVG.resolveImageSrc in JS, and the url_for / '://' checks in templates),
 so nothing downstream changes when you switch backends.
+
+Security note
+-------------
+Every upload is *decoded and re-encoded* through Pillow before it is stored.
+This is deliberate and load-bearing:
+
+  • it proves the bytes are a genuine image of an allowed type (a file merely
+    *named* ``evil.png`` that actually contains HTML/JS is rejected);
+  • it strips all metadata — including EXIF GPS coordinates from phone photos —
+    so users don't unknowingly republish their location;
+  • it neutralises "polyglot" files (bytes valid as both an image and as
+    script/HTML) because the stored file is freshly produced by Pillow.
+
+We never fall back to storing the raw upload: if Pillow can't decode it, the
+upload is refused.
 """
 
 import io
@@ -24,12 +39,12 @@ _CONTENT_TYPE = {
     "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
     "gif": "image/gif", "webp": "image/webp",
 }
-# Pillow format name keyed by file extension (used when re-encoding a crop).
+# Pillow format name keyed by file extension (used when re-encoding).
 _PIL_FORMAT = {
     "png": "PNG", "jpg": "JPEG", "jpeg": "JPEG", "gif": "GIF", "webp": "WEBP",
 }
 # Skip cropping when the image is already this close to the target ratio, so a
-# correctly-proportioned render isn't needlessly re-encoded over a stray pixel.
+# correctly-proportioned render isn't needlessly re-cropped over a stray pixel.
 _ASPECT_TOLERANCE = 0.01
 
 
@@ -47,79 +62,104 @@ def _ext(filename):
 def save_upload(file_storage, crop_aspect=None):
     """Persist one uploaded file; return its DB reference string.
 
-    `crop_aspect` (width / height) center-crops the image before storing, the
-    same way the card widgets `object-fit: cover` it at display time — so a
-    square upload with the card centred and side margins is trimmed down to
-    just the card. Falls back to the raw upload if Pillow is unavailable or the
-    bytes aren't a decodable image.
+    The upload is always decoded and re-encoded through Pillow (see the module
+    docstring). `crop_aspect` (width / height) additionally center-crops the
+    image first, the same way the card widgets `object-fit: cover` it at display
+    time — so a square upload with the card centred and side margins is trimmed
+    down to just the card.
     """
     if not file_storage or not file_storage.filename:
         raise UploadError("No file provided.")
     ext = _ext(file_storage.filename)
     key = f"{uuid.uuid4().hex}.{ext}"          # random name = no collisions/overwrites
 
-    data = _crop_to_aspect(file_storage, ext, crop_aspect) if crop_aspect else None
+    data = _sanitize_image(file_storage, ext, crop_aspect)
 
     if current_app.config.get("UPLOAD_BACKEND", "local") == "s3":
-        return _save_s3(file_storage, key, ext, data)
-    return _save_local(file_storage, key, data)
+        return _save_s3(key, ext, data)
+    return _save_local(key, data)
 
 
-def _crop_to_aspect(file_storage, ext, aspect):
-    """Return a BytesIO of `file_storage` center-cropped to `aspect`, or None to
-    store the upload untouched (Pillow missing, undecodable, or already on-ratio)."""
+def _sanitize_image(file_storage, ext, aspect=None):
+    """Decode the upload with Pillow, optionally center-crop to `aspect`, then
+    re-encode to a clean BytesIO (no original metadata). Raises UploadError if
+    the bytes aren't a decodable image — we never store an unverified upload."""
     try:
-        from PIL import Image
-    except ImportError:
-        return None
+        from PIL import Image, UnidentifiedImageError
+    except ImportError:                          # Pillow is a hard dependency
+        raise UploadError(
+            "Image processing is unavailable on the server. Please try later.")
+
     try:
         file_storage.stream.seek(0)
         img = Image.open(file_storage.stream)
         img.load()
-    except Exception:
-        return None
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        raise UploadError(
+            "That file isn't a valid image — use a real PNG, JPG, GIF, or WEBP.")
+
     w, h = img.size
     if not w or not h:
-        return None
+        raise UploadError("That image has no dimensions.")
 
-    cur = w / h
-    if abs(cur - aspect) / aspect < _ASPECT_TOLERANCE:
-        return None                              # already the card's proportions
-    if cur > aspect:                             # too wide → trim the sides
-        new_w = round(h * aspect)
-        left = (w - new_w) // 2
-        box = (left, 0, left + new_w, h)
-    else:                                        # too tall → trim top and bottom
-        new_h = round(w / aspect)
-        top = (h - new_h) // 2
-        box = (0, top, w, top + new_h)
+    # Center-crop to the requested aspect ratio when asked (and not already there).
+    if aspect:
+        cur = w / h
+        if abs(cur - aspect) / aspect >= _ASPECT_TOLERANCE:
+            if cur > aspect:                     # too wide → trim the sides
+                new_w = round(h * aspect)
+                left = (w - new_w) // 2
+                box = (left, 0, left + new_w, h)
+            else:                                # too tall → trim top and bottom
+                new_h = round(w / aspect)
+                top = (h - new_h) // 2
+                box = (0, top, w, top + new_h)
+            img = img.crop(box)
 
-    cropped = img.crop(box)
-    fmt = _PIL_FORMAT.get(ext, img.format or "PNG")
+    return _encode(img, ext)
+
+
+def _encode(img, ext):
+    """Re-encode a Pillow image to a BytesIO in the target format. Preserves
+    animation for multi-frame GIF/WEBP when possible; otherwise writes a single
+    clean frame. The re-encode is what drops any original metadata."""
+    from PIL import Image  # noqa: F401  (already importable; see _sanitize_image)
+
+    fmt = _PIL_FORMAT.get(ext, "PNG")
+    out = io.BytesIO()
+
+    # Best-effort animation preservation: only meaningful when we haven't
+    # cropped (cropping a multi-frame image would need per-frame work).
+    n_frames = getattr(img, "n_frames", 1)
+    if fmt in ("GIF", "WEBP") and n_frames > 1:
+        try:
+            img.save(out, format=fmt, save_all=True)
+            out.seek(0)
+            return out
+        except Exception:
+            out = io.BytesIO()                   # fall through to a single frame
+            img.seek(0)
+
     save_kwargs = {}
     if fmt == "JPEG":
-        cropped = cropped.convert("RGB")         # JPEG has no alpha channel
+        img = img.convert("RGB")                 # JPEG has no alpha channel
         save_kwargs["quality"] = 95
-    out = io.BytesIO()
-    cropped.save(out, format=fmt, **save_kwargs)
+    img.save(out, format=fmt, **save_kwargs)
     out.seek(0)
     return out
 
 
-def _save_local(file_storage, key, data=None):
+def _save_local(key, data):
     subdir = current_app.config.get("UPLOAD_SUBDIR", "uploads")
     dest_dir = os.path.join(current_app.static_folder, subdir)
     os.makedirs(dest_dir, exist_ok=True)
     dest = os.path.join(dest_dir, key)
-    if data is not None:
-        with open(dest, "wb") as fh:
-            fh.write(data.getbuffer())
-    else:
-        file_storage.save(dest)
-    return f"{subdir}/{key}"                    # resolved later via url_for('static', ...)
+    with open(dest, "wb") as fh:
+        fh.write(data.getbuffer())
+    return f"{subdir}/{key}"                     # resolved later via url_for('static', ...)
 
 
-def _save_s3(file_storage, key, ext, data=None):
+def _save_s3(key, ext, data):
     import boto3  # lazy import: only needed for the s3/R2 backend
 
     cfg = current_app.config
@@ -128,9 +168,8 @@ def _save_s3(file_storage, key, ext, data=None):
         endpoint_url=cfg.get("S3_ENDPOINT_URL") or None,   # set this for R2
         region_name=cfg.get("S3_REGION") or "auto",
     )
-    body = data if data is not None else file_storage.stream
     client.upload_fileobj(
-        body, cfg["S3_BUCKET"], key,
+        data, cfg["S3_BUCKET"], key,
         ExtraArgs={"ContentType": _CONTENT_TYPE.get(ext, "application/octet-stream")},
     )
     base = (cfg.get("S3_PUBLIC_BASE") or "").rstrip("/")

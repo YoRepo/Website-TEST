@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Slow down · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose prose--center">
+  <p class="hero__eyebrow">429</p>
+  <h1 class="hero__title">Too many tries.</h1>
+  <p>You've made a lot of requests in a short time. Wait a minute, then try again.</p>
+  <p><a class="btn" href="{{ url_for('main.index') }}">Back to the gallery</a></p>
+</section>
+{% endblock %}
