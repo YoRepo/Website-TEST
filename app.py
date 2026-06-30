@@ -5,6 +5,16 @@ A factory lets you build multiple app instances with different configs
 (essential for testing) and keeps top-level code free of side effects.
 """
 
+import os
+
+# Running `python app.py` directly means local development, so default to debug
+# (which permits the dev SECRET_KEY and relaxed, non-secure cookies). Production
+# imports this module instead (gunicorn loads `wsgi:app`), so __name__ != main
+# there and the secure defaults stand unless FLASK_DEBUG is explicitly set. This
+# MUST run before `config` is imported, since config reads FLASK_DEBUG at import.
+if __name__ == "__main__":
+    os.environ.setdefault("FLASK_DEBUG", "1")
+
 import secrets
 
 from flask import Flask, g, render_template
@@ -102,12 +112,15 @@ def create_app(config_class=Config):
     # and request.is_secure reflects the original HTTPS request (for HSTS).
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    import os
-    if (os.environ.get("FLASK_DEBUG", "1") != "1"
-            and app.config["SECRET_KEY"] == "dev-only-change-me"):
+    # Fail safe: the default SECRET_KEY is permitted ONLY when explicitly in
+    # local dev (FLASK_DEBUG=1). An unset FLASK_DEBUG now counts as production,
+    # so a forgotten env var refuses to boot instead of silently shipping a
+    # well-known key (which would let anyone forge a session and become admin).
+    if (app.config["SECRET_KEY"] == "dev-only-change-me"
+            and os.environ.get("FLASK_DEBUG") != "1"):
         raise RuntimeError(
-            "Refusing to start outside dev with the default SECRET_KEY. "
-            "Set the SECRET_KEY environment variable."
+            "Refusing to start with the default SECRET_KEY. Set the SECRET_KEY "
+            "environment variable (or FLASK_DEBUG=1 for local development)."
         )
 
     # Make SITE_NAME / SITE_TAGLINE available to every template without passing
