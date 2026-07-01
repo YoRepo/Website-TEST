@@ -379,7 +379,12 @@ def _safe_return(url):
 # ---------------------------------------------------------------------- routes
 @cards_bp.route("/")
 def list_cards():
-    cards = Card.query.order_by(Card.created_at.desc()).all()
+    q = Card.query
+    # Hidden (moderated) cards vanish from the public gallery; staff still see
+    # them so they can review or restore.
+    if not (current_user.is_authenticated and current_user.is_staff):
+        q = q.filter(Card.is_hidden.is_(False))
+    cards = q.order_by(Card.created_at.desc()).all()
     return render_template("cards/list.html", cards=cards)
 
 

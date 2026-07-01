@@ -80,6 +80,31 @@ def _widen_text_columns():
                         text(f"ALTER TABLE {table} ALTER COLUMN {col} TYPE TEXT"))
 
 
+def _ensure_moderation_columns():
+    """Additive, idempotent migration adding the takedown columns (is_hidden,
+    hidden_at, hidden_by_id) to the pre-existing `card` and `article` tables.
+    New rows get the model default; existing rows are backfilled to visible.
+    Safe on every boot (mirrors `_ensure_card_columns`)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    cols = {"is_hidden": "BOOLEAN", "hidden_at": "TIMESTAMP", "hidden_by_id": "INTEGER"}
+    for table in ("card", "article"):
+        if table not in insp.get_table_names():
+            continue  # fresh DB: create_all() already built it with every column
+        existing = {c["name"] for c in insp.get_columns(table)}
+        missing = {n: t for n, t in cols.items() if n not in existing}
+        if not missing:
+            continue
+        with db.engine.begin() as conn:
+            for name, typ in missing.items():
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN {name} {typ}'))
+            if "is_hidden" in missing:
+                # NOT NULL in the model; backfill so existing rows are visible.
+                conn.execute(
+                    text(f'UPDATE "{table}" SET is_hidden = :f WHERE is_hidden IS NULL'),
+                    {"f": False})
+
+
 def _bootstrap_admin_from_env(app):
     """Create the first admin from env vars, only if no admin exists yet.
     Lets you bootstrap on hosts with no shell (Render free tier). Safe to
@@ -184,7 +209,7 @@ def create_app(config_class=Config):
     # Import models so their tables are registered before db.create_all().
     from models import (  # noqa: F401
         User, CardSet, Card, Article, ArticleCard, ArticleSection, Comment,
-        UserRole,
+        UserRole, Report, ReportStatus,
     )
 
     @login_manager.user_loader
@@ -215,6 +240,9 @@ def create_app(config_class=Config):
     app.register_blueprint(ypk_bp, url_prefix="/ypk")
     app.register_blueprint(sets_bp, url_prefix="/sets")
     app.register_blueprint(github_bp, url_prefix="/github")
+
+    from blueprints.moderation import moderation_bp
+    app.register_blueprint(moderation_bp, url_prefix="/moderation")
 
     # Split an effect string on its leading circled markers (①②…⑳, ⓪) so each
     # numbered effect can be rendered in its own little block.
@@ -258,6 +286,7 @@ def create_app(config_class=Config):
         db.create_all()
         _ensure_card_columns()   # add post-hoc columns on existing databases
         _ensure_user_columns()   # add post-hoc columns to the user table
+        _ensure_moderation_columns()  # add takedown columns to card + article
         _widen_text_columns()    # drop legacy length caps on free-text columns
         # Populate sample content on first run so the homepage isn't empty.
         # Only seeds an empty DB, and only when SEED_DEMO_DATA is enabled.

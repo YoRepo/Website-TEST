@@ -35,6 +35,18 @@ def admin_required(view):
     return wrapped
 
 
+def staff_required(view):
+    """Staff only (moderators + admins). For the moderation queue and takedowns.
+    Place directly above the view (it adds login_required)."""
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.is_staff:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
 def owner_or_admin(owner_id):
     """403 unless the current user owns the object or is an admin. (Edits.)"""
     if not (current_user.is_admin or owner_id == current_user.id):

@@ -1,0 +1,93 @@
+{# path: templates/moderation/queue.html -#}
+{% extends "base.html" %}
+{% block title %}Moderation · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Moderation</p>
+  <h1 class="hero__title">Reported content</h1>
+  <p class="hero__sub">{{ open_count }} open report{{ '' if open_count == 1 else 's' }}.</p>
+</section>
+
+<div class="results-bar">
+  <div class="view-toggle" role="group" aria-label="Report status">
+    {% for key, label in [('open', 'Open'), ('resolved', 'Resolved'), ('dismissed', 'Dismissed')] %}
+      <a class="view-toggle__btn {{ 'is-active' if tab == key }}"
+         href="{{ url_for('moderation.queue', status=key) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if not items %}
+  <div class="empty">
+    <p class="empty__title">Nothing here.</p>
+    <p class="empty__hint">No {{ tab }} reports right now.</p>
+  </div>
+{% else %}
+  <div class="mod-queue">
+    {% for item in items %}
+      {% set r = item.report %}{% set obj = item.obj %}
+      <article class="block mod-item">
+        <div class="mod-item__meta">
+          <span class="badge">{{ r.content_type|capitalize }}</span>
+          {% if obj and obj.is_hidden %}<span class="badge badge--hidden">Hidden</span>{% endif %}
+          <span class="mod-item__when">{{ r.created_at.strftime('%b %d, %Y %H:%M') }} UTC</span>
+          <span class="mod-item__by">
+            reported by {{ r.reporter.username if r.reporter else 'an anonymous visitor' }}
+          </span>
+        </div>
+
+        {% if r.reason %}
+          <p class="mod-item__reason">“{{ r.reason }}”</p>
+        {% else %}
+          <p class="mod-item__reason mod-item__reason--none">(no reason given)</p>
+        {% endif %}
+
+        <div class="mod-item__content">
+          {% if obj is none %}
+            <p class="mod-item__gone">This content has since been deleted.</p>
+          {% elif r.content_type == 'card' %}
+            <div class="mod-item__card">{% set card = obj %}{% include "partials/card_tile.html" %}</div>
+          {% elif r.content_type == 'article' %}
+            <p class="mod-item__article">
+              <a class="link-gold" href="{{ url_for('articles.detail', article_id=obj.id) }}">{{ obj.title }}</a>
+              — by {{ (obj.author.display_name or obj.author.username) if obj.author else 'Unknown' }}
+            </p>
+          {% endif %}
+        </div>
+
+        <div class="mod-item__actions">
+          {% if obj is not none %}
+            {% if obj.is_hidden %}
+            <form method="post" class="mod-inline"
+                  action="{{ url_for('moderation.unhide', content_type=r.content_type, content_id=obj.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="btn btn--ghost" type="submit">Restore (unhide)</button>
+            </form>
+            {% else %}
+            <form method="post" class="mod-inline"
+                  action="{{ url_for('moderation.hide', content_type=r.content_type, content_id=obj.id) }}"
+                  data-confirm="Hide this {{ r.content_type }} from the public?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="link-danger" type="submit">Hide (take down)</button>
+            </form>
+            {% endif %}
+          {% endif %}
+          {% if r.status.name == 'OPEN' %}
+          <form method="post" class="mod-inline"
+                action="{{ url_for('moderation.dismiss', report_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="btn btn--ghost" type="submit">Dismiss report</button>
+          </form>
+          {% else %}
+          <span class="mod-item__status">{{ r.status.value }}{% if r.handler %} by {{ r.handler.username }}{% endif %}</span>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,5 +1,6 @@
 {# path: templates/articles/detail.html -#}
 {% extends "base.html" %}
+{% from "partials/report.html" import report_button %}
 
 {% block title %}{{ article.title }} · {{ SITE_NAME }}{% endblock %}
 
@@ -33,6 +34,32 @@
   <p class="detail__byline">by <span>{{ byline }}</span>
      · {{ article.created_at.strftime('%b %d, %Y') }}
      · <a class="link-gold" href="{{ url_for('articles.edit', article_id=article.id) }}">Edit</a></p>
+
+  {% if article.is_hidden and can_moderate %}
+    <p class="modbanner">⚠ This article is hidden from the public (moderated).</p>
+  {% endif %}
+
+  <div class="detail__mod">
+    {{ report_button('article', article.id, 'Report article') }}
+    {% if can_moderate %}
+      {% if article.is_hidden %}
+      <form method="post" class="mod-inline"
+            action="{{ url_for('moderation.unhide', content_type='article', content_id=article.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="btn btn--ghost" type="submit">Restore (unhide)</button>
+      </form>
+      {% else %}
+      <form method="post" class="mod-inline"
+            action="{{ url_for('moderation.hide', content_type='article', content_id=article.id) }}"
+            data-confirm="Hide this article from the public?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="link-danger" type="submit">Hide (take down)</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
 
   <p class="detail__desc">{{ article.overview or article.description }}</p>
 
@@ -88,8 +115,10 @@
       {% if loose %}
         <div class="showcase-list">
           {% for link in loose %}
+            {% if link.card and (not link.card.is_hidden or can_moderate) %}
             {% set card = link.card %}{% set caption = link.caption %}
             {% include "partials/card_showcase.html" %}
+            {% endif %}
           {% endfor %}
         </div>
       {% endif %}
@@ -105,8 +134,10 @@
           {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
           <div class="showcase-list">
             {% for link in section.cards %}
+              {% if link.card and (not link.card.is_hidden or can_moderate) %}
               {% set card = link.card %}{% set caption = link.caption %}
               {% include "partials/card_showcase.html" %}
+              {% endif %}
             {% endfor %}
           </div>
         </section>
@@ -118,8 +149,10 @@
       {% if loose %}
         <div class="card-grid">
           {% for link in loose %}
+            {% if link.card and (not link.card.is_hidden or can_moderate) %}
             {% set card = link.card %}
             {% include "partials/card_tile.html" %}
+            {% endif %}
           {% endfor %}
         </div>
       {% endif %}
@@ -135,8 +168,10 @@
           {% if section.body %}<p class="article-section__body">{{ section.body }}</p>{% endif %}
           <div class="card-grid">
             {% for link in section.cards %}
+              {% if link.card and (not link.card.is_hidden or can_moderate) %}
               {% set card = link.card %}
               {% include "partials/card_tile.html" %}
+              {% endif %}
             {% endfor %}
           </div>
         </section>

@@ -22,7 +22,8 @@ def _published_articles():
     """Newest-first list of PUBLISHED articles only.
     (Drop the status filter if you want drafts visible during development.)"""
     return (
-        Article.query.filter(Article.status == ArticleStatus.PUBLISHED)
+        Article.query.filter(Article.status == ArticleStatus.PUBLISHED,
+                             Article.is_hidden.is_(False))
         .order_by(Article.created_at.desc())
         .all()
     )
@@ -53,6 +54,7 @@ def search():
             Card.query
             .outerjoin(CardSet, Card.set_id == CardSet.id)
             .filter(
+                Card.is_hidden.is_(False),
                 db.or_(
                     Card.name.ilike(like),
                     CardSet.name.ilike(like),

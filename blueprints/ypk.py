@@ -36,7 +36,8 @@ def _cards_for_picker():
              "has_image": bool(c.render_image),
              "render_image": c.render_image or "",
              "svg_state": c.svg_state}
-            for c in Card.query.order_by(Card.name).all()]
+            for c in Card.query.filter(Card.is_hidden.is_(False))
+                               .order_by(Card.name).all()]
 
 
 def _safe_pack_name(raw):
@@ -59,6 +60,9 @@ def _parse_items(structure):
         card = Card.query.get(entry.get("card_id"))
         if card is None:
             raise ValueError("A selected card no longer exists; remove it.")
+        if card.is_hidden:
+            raise ValueError(f"“{card.name}” has been removed by a moderator; "
+                             "remove it from this build.")
 
         raw_id = str(entry.get("cdb_id", "")).strip()
         if not raw_id and card.cdb_id is not None:

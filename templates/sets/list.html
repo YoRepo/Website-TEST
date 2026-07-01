@@ -41,7 +41,7 @@
       <td>{{ s.card_count }}</td>
       <td class="cardtable__actions">
         <form method="post" action="{{ url_for('sets.delete', set_id=s.id) }}"
-              onsubmit="return confirm('Delete “{{ s.name }}”?');">
+              data-confirm="Delete “{{ s.name }}”?">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="link-danger" type="submit">Delete</button>
         </form>

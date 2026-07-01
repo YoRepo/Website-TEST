@@ -1,8 +1,12 @@
-Flask
-Flask-SQLAlchemy
-Flask-Login
-Flask-WTF
-Flask-Limiter
-gunicorn
-psycopg2-binary
-Pillow
+# Pinned to the versions verified in the security-audit test run. Bump
+# deliberately (and re-test) rather than floating, so a fresh Render build can't
+# silently pull a newer, untested — or vulnerable — release. Run `pip-audit`
+# against this file periodically, or let Dependabot open update PRs.
+Flask==3.1.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-WTF==1.3.0
+Flask-Limiter==4.1.1
+gunicorn==26.0.0
+psycopg2-binary==2.9.12
+Pillow==12.2.0
