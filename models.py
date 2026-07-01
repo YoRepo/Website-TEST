@@ -205,6 +205,13 @@ class ArticleStatus(enum.Enum):
     PUBLISHED = "Published"
 
 
+class ReportStatus(enum.Enum):
+    """Lifecycle of a user's content report in the moderation queue."""
+    OPEN = "Open"            # awaiting a moderator
+    RESOLVED = "Resolved"    # actioned (content hidden / removed)
+    DISMISSED = "Dismissed"  # reviewed, no action needed
+
+
 # ===========================================================================
 #  USER — owner of everything. Minimal stub for now; real auth (password
 #  hashing, login) is a later step. Ownership FKs are nullable until then so
@@ -308,6 +315,15 @@ class Card(db.Model):
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    # --- Moderation -------------------------------------------------------
+    # A hidden card is taken down: excluded from public listings, search, the
+    # card pickers, and article rendering. Reversible (staff can unhide).
+    # hidden_by_id is a plain audit column (not a FK) so it doesn't add a second
+    # user→card join path that would make the User.cards backref ambiguous.
+    is_hidden = db.Column(db.Boolean, nullable=False, default=False)
+    hidden_at = db.Column(db.DateTime, nullable=True)
+    hidden_by_id = db.Column(db.Integer, nullable=True)
 
     # --- Monster-only -----------------------------------------------------
     is_effect = db.Column(db.Boolean, nullable=False, default=False)
@@ -659,7 +675,8 @@ class ArticleSection(db.Model):
         """Formatted plaintext of every card in this section, blank-line
         separated. Cards only — the section heading and prose are not
         included (see Card.copy_text)."""
-        return "\n\n".join(link.card.copy_text for link in self.cards if link.card)
+        return "\n\n".join(link.card.copy_text for link in self.cards
+                           if link.card and not link.card.is_hidden)
 
 
 class Article(db.Model):
@@ -683,6 +700,14 @@ class Article(db.Model):
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
     published_at = db.Column(db.DateTime, nullable=True)
+
+    # --- Moderation -------------------------------------------------------
+    # A hidden article is taken down: 404 to the public, excluded from the
+    # homepage. Reversible (staff can unhide). hidden_by_id is a plain audit
+    # column (not a FK) — see the note on Card.hidden_by_id.
+    is_hidden = db.Column(db.Boolean, nullable=False, default=False)
+    hidden_at = db.Column(db.DateTime, nullable=True)
+    hidden_by_id = db.Column(db.Integer, nullable=True)
 
     # Featured cards, ordered. `card_links` are the association rows;
     # `cards` is a convenience proxy straight to the Card objects.
@@ -716,9 +741,16 @@ class Article(db.Model):
         return len(self.comments)
 
     @property
+    def visible_card_links(self):
+        """Featured-card links whose card exists and isn't moderated away.
+        The public renderer and counts use this so a hidden card disappears
+        everywhere it's embedded, not just from its own listings."""
+        return [l for l in self.card_links if l.card and not l.card.is_hidden]
+
+    @property
     def card_count(self):
-        """Cards featured, clamped to 1–3 for the stage widget."""
-        return max(1, min(3, len(self.card_links)))
+        """Visible cards featured, clamped to 1–3 for the stage widget."""
+        return max(1, min(3, len(self.visible_card_links)))
 
     @property
     def copy_text(self):
@@ -728,7 +760,7 @@ class Article(db.Model):
         and section prose, and comments, are deliberately excluded."""
         blocks = []
         loose = [l.card for l in self.card_links
-                 if l.section_id is None and l.card]
+                 if l.section_id is None and l.card and not l.card.is_hidden]
         if loose:
             blocks.append("\n\n".join(c.copy_text for c in loose))
         for section in self.sections:
@@ -754,3 +786,36 @@ class Comment(db.Model):
 
     def __repr__(self):
         return f"<Comment id={self.id} author={self.author_name!r}>"
+
+
+# ===========================================================================
+#  REPORT — a reader's flag on a piece of content, for the moderation queue.
+#  Kept generic (content_type + content_id) rather than one FK per type so a
+#  new reportable content type doesn't need a schema change. content_type is
+#  one of the keys in blueprints/moderation.py:REPORTABLE.
+# ===========================================================================
+REPORT_REASON_MAX = 500
+
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content_type = db.Column(db.String(16), nullable=False)   # "card" | "article"
+    content_id = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.String(REPORT_REASON_MAX), nullable=True)
+
+    # Nullable: anonymous visitors can report too (rate-limited server-side).
+    reporter_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    status = db.Column(db.Enum(ReportStatus), nullable=False,
+                       default=ReportStatus.OPEN)
+    handled_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    handled_at = db.Column(db.DateTime, nullable=True)
+
+    # Explicit foreign_keys: two columns point at user.id.
+    reporter = db.relationship("User", foreign_keys=[reporter_id])
+    handler = db.relationship("User", foreign_keys=[handled_by_id])
+
+    def __repr__(self):
+        return (f"<Report id={self.id} {self.content_type}#{self.content_id} "
+                f"{self.status.value}>")

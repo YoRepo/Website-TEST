@@ -11,12 +11,17 @@ from flask_login import (
     current_user, login_required, login_user, logout_user,
 )
 
-from extensions import db
+from extensions import db, limiter
 from models import User, UserRole
 
 auth_bp = Blueprint("auth", __name__)
 
 MIN_PASSWORD_LEN = 10
+
+# Brute-force / abuse throttles, per client IP. GET (showing the form) is exempt
+# so only actual submissions count against the limit.
+_LOGIN_LIMIT = "10 per minute; 60 per hour"
+_REGISTER_LIMIT = "5 per minute; 20 per hour"
 
 
 def admin_required(view):
@@ -25,6 +30,18 @@ def admin_required(view):
     @login_required
     def wrapped(*args, **kwargs):
         if not current_user.is_admin:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def staff_required(view):
+    """Staff only (moderators + admins). For the moderation queue and takedowns.
+    Place directly above the view (it adds login_required)."""
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.is_staff:
             abort(403)
         return view(*args, **kwargs)
     return wrapped
@@ -53,6 +70,7 @@ def _safe_next(target):
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit(_REGISTER_LIMIT, methods=["POST"])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
@@ -91,6 +109,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(_LOGIN_LIMIT, methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))

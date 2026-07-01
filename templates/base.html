@@ -67,6 +67,7 @@
           <details class="menu menu--right">
             <summary class="menu__trigger menu__user">{{ current_user.display_name or current_user.username }}</summary>
             <div class="menu__panel">
+              {% if current_user.is_staff %}<a href="{{ url_for('moderation.queue') }}">Moderation</a>{% endif %}
               {% if current_user.is_admin %}<a href="{{ url_for('admin.users') }}">Admin</a>{% endif %}
               <form method="post" action="{{ url_for('auth.logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

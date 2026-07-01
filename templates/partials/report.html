@@ -1,0 +1,20 @@
+{# path: templates/partials/report.html -#}
+{# A CSP-safe "Report" disclosure: a <details> that opens a small form posting
+   to moderation.report. Import and call: {{ report_button('card', card.id) }}.
+   Open to anonymous visitors too; the server rate-limits submissions. #}
+{% macro report_button(content_type, content_id, label='Report') -%}
+<details class="report">
+  <summary class="report__trigger link-danger">{{ label }}</summary>
+  <form class="report__form" method="post" action="{{ url_for('moderation.report') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="content_type" value="{{ content_type }}">
+    <input type="hidden" name="content_id" value="{{ content_id }}">
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    <label class="report__label">What's wrong with this?
+      <span class="field__hint">(optional)</span></label>
+    <textarea class="report__reason" name="reason" rows="2" maxlength="500"
+              placeholder="e.g. offensive image, stolen artwork, spam…"></textarea>
+    <button class="btn btn--ghost report__submit" type="submit">Send report</button>
+  </form>
+</details>
+{%- endmacro %}

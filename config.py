@@ -9,9 +9,12 @@ an environment variable. Here we keep a single class for clarity.
 import os
 from datetime import timedelta
 
-# Dev mode unless explicitly disabled. Gates "secure-cookie" settings so login
-# still works over plain http locally.
-_DEBUG = os.environ.get("FLASK_DEBUG", "1") == "1"
+# Production-safe by default: debug is OFF unless you explicitly opt in with
+# FLASK_DEBUG=1. This gates the "secure-cookie" settings below, so a forgotten
+# env var fails safe (HTTPS-only cookies) instead of shipping relaxed ones.
+# `python app.py` sets FLASK_DEBUG=1 for you; for `flask run` during local
+# development, export FLASK_DEBUG=1 so login works over plain http.
+_DEBUG = os.environ.get("FLASK_DEBUG") == "1"
 _DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///customduelist.db")
 # Render gives "postgres://", SQLAlchemy wants "postgresql://". Fix transparently
 # so the same code runs locally (SQLite) and on Render (Postgres).

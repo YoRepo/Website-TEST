@@ -1696,3 +1696,50 @@ body.is-modal-open { overflow: hidden; }
   .ghpick__locator { flex-wrap: wrap; }
   .ghpick__input--ref { flex: 1 0 100%; }
 }
+
+/* ------------------------------------------------------------------ *
+ *  Moderation: report control, hidden badge, review queue            *
+ * ------------------------------------------------------------------ */
+.badge {
+  display: inline-block; padding: 0.05rem 0.5rem; margin-left: 0.35rem;
+  border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.02em; background: var(--gold-dim); color: var(--gold);
+  vertical-align: middle;
+}
+.badge--hidden { background: rgba(229, 115, 115, 0.16); color: #e57373; }
+
+.modbanner {
+  margin: 0.5rem 0 1rem; padding: 0.6rem 0.9rem; border-radius: 10px;
+  background: rgba(229, 115, 115, 0.12); border: 1px solid rgba(229, 115, 115, 0.4);
+  color: #f0b4b4; font-size: 0.9rem;
+}
+
+/* Report disclosure (a <details> that opens a small form). */
+.report { display: inline-block; margin-top: 0.35rem; }
+.report__trigger { cursor: pointer; font-size: 0.8rem; list-style: none; }
+.report__trigger::-webkit-details-marker { display: none; }
+.report__form {
+  margin-top: 0.5rem; padding: 0.7rem; max-width: 340px;
+  background: var(--surface-2); border: 1px solid var(--hair); border-radius: 12px;
+}
+.report__label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+.report__reason {
+  width: 100%; box-sizing: border-box; resize: vertical; margin-bottom: 0.5rem;
+  background: var(--ink); color: var(--text);
+  border: 1px solid var(--hair-2); border-radius: 8px; padding: 0.45rem 0.55rem;
+  font: inherit; font-size: 0.85rem;
+}
+
+.mod-inline { display: inline; margin: 0; }
+.mod-queue { display: grid; gap: 1rem; margin-top: 1rem; }
+.mod-item { padding: 1rem 1.1rem; }
+.mod-item__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--muted); }
+.mod-item__reason { margin: 0.6rem 0; color: var(--text); }
+.mod-item__reason--none { color: var(--muted-2); font-style: italic; }
+.mod-item__content { margin: 0.6rem 0; }
+.mod-item__card { max-width: 220px; }
+.mod-item__gone { color: var(--muted-2); font-style: italic; }
+.mod-item__actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 0.5rem; }
+.mod-item__status { font-size: 0.82rem; color: var(--muted); }
+
+.detail__mod { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.8rem; margin: 0.5rem 0 1rem; }

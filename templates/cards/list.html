@@ -1,5 +1,6 @@
 {# path: templates/cards/list.html -#}
 {% extends "base.html" %}
+{% from "partials/report.html" import report_button %}
 {% block title %}Cards · {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
@@ -17,7 +18,8 @@
   <tbody>
     {% for card in cards %}
     <tr>
-      <td><a class="cardtable__name" href="{{ url_for('cards.edit', card_id=card.id, next=request.full_path) }}">{{ card.name }}</a></td>
+      <td><a class="cardtable__name" href="{{ url_for('cards.edit', card_id=card.id, next=request.full_path) }}">{{ card.name }}</a>
+        {% if card.is_hidden %}<span class="badge badge--hidden">Hidden</span>{% endif %}</td>
       <td class="cardtable__type">
         {% if card.is_monster %}
           {{ card.display_attribute }} ·
@@ -41,10 +43,29 @@
         {% endif %}
         {% if mine or (current_user.is_authenticated and current_user.is_staff) %}
         <form method="post" action="{{ url_for('cards.delete', card_id=card.id) }}"
-              onsubmit="return confirm('Delete “{{ card.name }}”?');">
+              data-confirm="Delete “{{ card.name }}”?">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="link-danger" type="submit">Delete</button>
         </form>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.is_staff %}
+          {% if card.is_hidden %}
+          <form method="post" action="{{ url_for('moderation.unhide', content_type='card', content_id=card.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="link-gold" type="submit">Unhide</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('moderation.hide', content_type='card', content_id=card.id) }}"
+                data-confirm="Hide “{{ card.name }}” from the public?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="link-danger" type="submit">Hide</button>
+          </form>
+          {% endif %}
+        {% endif %}
+        {% if not mine %}
+          {{ report_button('card', card.id) }}
         {% endif %}
       </td>
     </tr>

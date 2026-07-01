@@ -5,10 +5,23 @@ A factory lets you build multiple app instances with different configs
 (essential for testing) and keeps top-level code free of side effects.
 """
 
-from flask import Flask, render_template
+import os
+
+# Running `python app.py` directly means local development, so default to debug
+# (which permits the dev SECRET_KEY and relaxed, non-secure cookies). Production
+# imports this module instead (gunicorn loads `wsgi:app`), so __name__ != main
+# there and the secure defaults stand unless FLASK_DEBUG is explicitly set. This
+# MUST run before `config` is imported, since config reads FLASK_DEBUG at import.
+if __name__ == "__main__":
+    os.environ.setdefault("FLASK_DEBUG", "1")
+
+import secrets
+
+from flask import Flask, g, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
-from extensions import db, login_manager, csrf
+from extensions import db, login_manager, csrf, limiter
 
 def _ensure_card_columns():
     """Additive, idempotent migration for columns that post-date the original
@@ -67,6 +80,31 @@ def _widen_text_columns():
                         text(f"ALTER TABLE {table} ALTER COLUMN {col} TYPE TEXT"))
 
 
+def _ensure_moderation_columns():
+    """Additive, idempotent migration adding the takedown columns (is_hidden,
+    hidden_at, hidden_by_id) to the pre-existing `card` and `article` tables.
+    New rows get the model default; existing rows are backfilled to visible.
+    Safe on every boot (mirrors `_ensure_card_columns`)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    cols = {"is_hidden": "BOOLEAN", "hidden_at": "TIMESTAMP", "hidden_by_id": "INTEGER"}
+    for table in ("card", "article"):
+        if table not in insp.get_table_names():
+            continue  # fresh DB: create_all() already built it with every column
+        existing = {c["name"] for c in insp.get_columns(table)}
+        missing = {n: t for n, t in cols.items() if n not in existing}
+        if not missing:
+            continue
+        with db.engine.begin() as conn:
+            for name, typ in missing.items():
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN {name} {typ}'))
+            if "is_hidden" in missing:
+                # NOT NULL in the model; backfill so existing rows are visible.
+                conn.execute(
+                    text(f'UPDATE "{table}" SET is_hidden = :f WHERE is_hidden IS NULL'),
+                    {"f": False})
+
+
 def _bootstrap_admin_from_env(app):
     """Create the first admin from env vars, only if no admin exists yet.
     Lets you bootstrap on hosts with no shell (Render free tier). Safe to
@@ -94,12 +132,20 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    import os
-    if (os.environ.get("FLASK_DEBUG", "1") != "1"
-            and app.config["SECRET_KEY"] == "dev-only-change-me"):
+    # Render (and most PaaS) put the app behind a reverse proxy. Trust one hop of
+    # X-Forwarded-* so request.remote_addr is the real client (for rate limiting)
+    # and request.is_secure reflects the original HTTPS request (for HSTS).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Fail safe: the default SECRET_KEY is permitted ONLY when explicitly in
+    # local dev (FLASK_DEBUG=1). An unset FLASK_DEBUG now counts as production,
+    # so a forgotten env var refuses to boot instead of silently shipping a
+    # well-known key (which would let anyone forge a session and become admin).
+    if (app.config["SECRET_KEY"] == "dev-only-change-me"
+            and os.environ.get("FLASK_DEBUG") != "1"):
         raise RuntimeError(
-            "Refusing to start outside dev with the default SECRET_KEY. "
-            "Set the SECRET_KEY environment variable."
+            "Refusing to start with the default SECRET_KEY. Set the SECRET_KEY "
+            "environment variable (or FLASK_DEBUG=1 for local development)."
         )
 
     # Make SITE_NAME / SITE_TAGLINE available to every template without passing
@@ -116,11 +162,54 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
+
+    # --- Security headers + per-request CSP nonce ----------------------------
+    # A fresh nonce each request lets us run a strict script-src (no
+    # 'unsafe-inline') while still allowing our two tiny inline redirect
+    # scripts, which carry nonce="{{ csp_nonce }}".
+    @app.before_request
+    def _csp_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.context_processor
+    def _inject_nonce():
+        return {"csp_nonce": g.get("csp_nonce", "")}
+
+    @app.after_request
+    def _security_headers(response):
+        nonce = g.get("csp_nonce", "")
+        csp = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            # Cards may link external https art, and JS previews use data:/blob:.
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+        # Only assert HSTS once we know the request actually arrived over HTTPS,
+        # so local http development isn't pinned to https.
+        from flask import request
+        if request.is_secure:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
 
     # Import models so their tables are registered before db.create_all().
     from models import (  # noqa: F401
         User, CardSet, Card, Article, ArticleCard, ArticleSection, Comment,
-        UserRole,
+        UserRole, Report, ReportStatus,
     )
 
     @login_manager.user_loader
@@ -152,6 +241,9 @@ def create_app(config_class=Config):
     app.register_blueprint(sets_bp, url_prefix="/sets")
     app.register_blueprint(github_bp, url_prefix="/github")
 
+    from blueprints.moderation import moderation_bp
+    app.register_blueprint(moderation_bp, url_prefix="/moderation")
+
     # Split an effect string on its leading circled markers (①②…⑳, ⓪) so each
     # numbered effect can be rendered in its own little block.
     import re as _re
@@ -182,6 +274,10 @@ def create_app(config_class=Config):
     def page_not_found(error):
         return render_template("errors/404.html"), 404
 
+    @app.errorhandler(429)
+    def too_many_requests(error):
+        return render_template("errors/429.html"), 429
+
     @app.errorhandler(500)
     def server_error(error):
         return render_template("errors/500.html"), 500
@@ -190,6 +286,7 @@ def create_app(config_class=Config):
         db.create_all()
         _ensure_card_columns()   # add post-hoc columns on existing databases
         _ensure_user_columns()   # add post-hoc columns to the user table
+        _ensure_moderation_columns()  # add takedown columns to card + article
         _widen_text_columns()    # drop legacy length caps on free-text columns
         # Populate sample content on first run so the homepage isn't empty.
         # Only seeds an empty DB, and only when SEED_DEMO_DATA is enabled.

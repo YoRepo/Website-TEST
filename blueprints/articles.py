@@ -36,7 +36,8 @@ def _cards_for_picker():
              "set": c.card_set.name if c.card_set else "",
              "render_image": c.render_image or "",
              "svg_state": c.svg_state}
-            for c in Card.query.order_by(Card.name).all()]
+            for c in Card.query.filter(Card.is_hidden.is_(False))
+                               .order_by(Card.name).all()]
 
 
 def _structure_from_article(article):
@@ -114,17 +115,25 @@ _ARTICLE_VIEWS = ("reading", "grid")
 @articles_bp.route("/<int:article_id>")
 def detail(article_id):
     article = Article.query.get_or_404(article_id)
+    is_owner = current_user.is_authenticated and article.author_id == current_user.id
+    is_staff = current_user.is_authenticated and current_user.is_staff
     if article.status != ArticleStatus.PUBLISHED:
-        if not current_user.is_authenticated or not (
-            current_user.is_admin or article.author_id == current_user.id
-        ):
+        if not (current_user.is_authenticated
+                and (current_user.is_admin or is_owner)):
             abort(404)   # 404, not 403 — don't confirm the draft exists
+    # A hidden (moderated) article 404s for the public; the author and staff can
+    # still reach it (staff to review/restore, the author to see it's gone).
+    if article.is_hidden and not (is_staff or is_owner):
+        abort(404)
     # `aview` (reading|grid) chooses how the featured cards are laid out; it's
     # preserved on the toggle links so the choice survives a no-JS reload.
     aview = request.args.get("aview", "reading")
     if aview not in _ARTICLE_VIEWS:
         aview = "reading"
-    return render_template("articles/detail.html", article=article, aview=aview)
+    # Staff see hidden embedded cards (to review) and the article's moderation
+    # controls; everyone else never sees hidden cards.
+    return render_template("articles/detail.html", article=article, aview=aview,
+                           can_moderate=is_staff)
 
 
 def _safe_structure(raw):

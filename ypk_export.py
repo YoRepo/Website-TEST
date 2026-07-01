@@ -17,9 +17,12 @@ image keyed by its passcode. Image bytes are resolved from the same references
 the site already stores (a path under ``static/`` or an absolute URL).
 """
 
+import ipaddress
 import os
+import socket
 import tempfile
 import zipfile
+from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from flask import current_app
@@ -48,16 +51,50 @@ def _image_ext(ref):
     return tail if tail in _IMAGE_EXTS else "jpg"
 
 
+def _is_public_url(url):
+    """SSRF guard for a *user-supplied* image URL.
+
+    A card's ``render_image`` can be any http(s) URL the user typed, and we
+    fetch it server-side when building a pack. Without this check a user could
+    point it at an internal address (cloud metadata at 169.254.169.254,
+    localhost, a private 10.x service…) and have the server fetch it and hand
+    the bytes back inside the downloaded ``.ypk``.
+
+    We allow only http/https and refuse any host that resolves to a private,
+    loopback, link-local, or otherwise non-public address."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return False
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or 0,
+                                   proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        return False
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            return False
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_reserved or ip.is_unspecified):
+            return False
+    return True
+
+
 def resolve_image(ref):
     """Return ``(bytes, ext)`` for a render-image reference, or ``None``.
 
-    Mirrors how the site resolves images elsewhere: an absolute URL is fetched;
-    anything else is read from disk relative to ``static/``."""
+    Mirrors how the site resolves images elsewhere: an absolute URL is fetched
+    (only if it points at a public host — see :func:`_is_public_url`); anything
+    else is read from disk relative to ``static/``."""
     if not ref:
         return None
     if "://" in ref:
+        if not _is_public_url(ref):
+            return None
         try:
-            with urlopen(ref, timeout=20) as resp:  # noqa: S310 (trusted refs)
+            with urlopen(ref, timeout=20) as resp:  # noqa: S310 (host vetted above)
                 return resp.read(), _image_ext(ref)
         except Exception:
             return None

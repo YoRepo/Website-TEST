@@ -14,7 +14,7 @@
   </div>
 </section>
 
-<script>
+<script nonce="{{ csp_nonce }}">
   setTimeout(function () { window.location.href = {{ return_to|tojson }}; }, 1300);
 </script>
 <noscript><meta http-equiv="refresh" content="1;url={{ return_to }}"></noscript>

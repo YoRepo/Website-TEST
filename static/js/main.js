@@ -42,3 +42,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+// Confirm-before-submit, CSP-safe. Any <form data-confirm="Message?"> asks for
+// confirmation on submit; cancelling aborts it. Replaces inline
+// onsubmit="return confirm(...)" handlers, which a strict script-src forbids.
+document.addEventListener("submit", (e) => {
+  const form = e.target;
+  if (form instanceof HTMLFormElement && form.dataset.confirm) {
+    if (!window.confirm(form.dataset.confirm)) e.preventDefault();
+  }
+}, true);
