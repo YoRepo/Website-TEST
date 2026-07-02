@@ -1,0 +1,65 @@
+{# path: templates/legal/terms.html -#}
+{# NOTE TO OWNER: this is a plain-language starting point, not legal advice.
+   Have it reviewed for your jurisdiction, and fill in the [bracketed] items,
+   before you rely on it. #}
+{% extends "base.html" %}
+{% block title %}Terms of Service · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose" style="max-width:760px;">
+  <p class="hero__eyebrow">Legal</p>
+  <h1 class="hero__title">Terms of Service</h1>
+  <p class="field__hint">Last updated: {{ now_year }}. Operated by [your name or entity].</p>
+
+  <h2>1. Who we are</h2>
+  <p>
+    {{ SITE_NAME }} is a fan-made gallery for original, community-created custom
+    cards. It is not affiliated with or endorsed by Konami. By creating an
+    account or using the site you agree to these Terms and to our
+    <a class="link-gold" href="{{ url_for('main.acceptable_use') }}">Acceptable Use Policy</a>.
+  </p>
+
+  <h2>2. Your account</h2>
+  <p>
+    You are responsible for what happens under your account and for keeping your
+    password safe. You must be old enough to form a binding contract where you
+    live (and at least 13). We may suspend or remove accounts that break these
+    Terms.
+  </p>
+
+  <h2>3. Content you upload</h2>
+  <p>
+    You keep ownership of the cards, images, and text you submit. You grant
+    {{ SITE_NAME }} a non-exclusive licence to host and display that content so
+    the site can function. You promise you have the right to upload what you
+    upload, and that it follows our Acceptable Use Policy.
+  </p>
+  <p>
+    We may review, hide, or remove any content, and may hold new uploads for
+    review before they appear publicly. We are not obligated to store your
+    content and you should keep your own copies.
+  </p>
+
+  <h2>4. Content that isn't yours</h2>
+  <p>
+    Don't upload artwork or text you don't have the right to use. If you believe
+    content here infringes your copyright, see
+    <a class="link-gold" href="{{ url_for('main.report_abuse') }}">Report abuse</a>.
+  </p>
+
+  <h2>5. No warranty; limitation of liability</h2>
+  <p>
+    The site is provided "as is", without warranties of any kind. To the extent
+    the law allows, [your name or entity] is not liable for indirect or
+    consequential damages arising from your use of the site.
+  </p>
+
+  <h2>6. Changes</h2>
+  <p>
+    We may update these Terms; material changes will be noted on this page.
+    Continuing to use the site after a change means you accept it.
+  </p>
+
+  <h2>7. Contact</h2>
+  <p>Questions about these Terms: <a class="link-gold" href="mailto:{{ SITE_CONTACT_EMAIL }}">{{ SITE_CONTACT_EMAIL }}</a>.</p>
+</section>
+{% endblock %}

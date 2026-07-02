@@ -16,11 +16,15 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
-from extensions import db
+from extensions import db, limiter
 from blueprints.auth import owner_or_admin
+from blueprints.moderation import hold_for_review_if_required
 from models import Article, ArticleCard, ArticleSection, ArticleStatus, Card
 
 articles_bp = Blueprint("articles", __name__)
+
+# Throttle article create/edit submissions. GET is exempt.
+_WRITE_LIMIT = "12 per minute; 120 per hour"
 
 
 def _clean(raw):
@@ -144,6 +148,7 @@ def _safe_structure(raw):
 
 
 @articles_bp.route("/new", methods=["GET", "POST"])
+@limiter.limit(_WRITE_LIMIT, methods=["POST"])
 @login_required
 def new():
     if request.method == "POST":
@@ -151,9 +156,14 @@ def new():
         try:
             _apply_article(article, request.form)
             article.author_id = current_user.id
+            held = hold_for_review_if_required(article)
             db.session.add(article)
             db.session.commit()
-            flash(f"Created “{article.title}”.", "success")
+            if held:
+                flash(f"Created “{article.title}” — it's awaiting moderator "
+                      "review before it appears publicly.", "success")
+            else:
+                flash(f"Created “{article.title}”.", "success")
             return redirect(url_for("articles.detail", article_id=article.id))
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             db.session.rollback()
@@ -168,6 +178,7 @@ def new():
 
 
 @articles_bp.route("/<int:article_id>/edit", methods=["GET", "POST"])
+@limiter.limit(_WRITE_LIMIT, methods=["POST"])
 @login_required
 def edit(article_id):
     article = Article.query.get_or_404(article_id)

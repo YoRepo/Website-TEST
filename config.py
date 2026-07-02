@@ -39,11 +39,48 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "8")) * 1024 * 1024
     UPLOAD_BACKEND = os.environ.get("UPLOAD_BACKEND", "local")  # "local" | "s3"
     UPLOAD_SUBDIR = os.environ.get("UPLOAD_SUBDIR", "uploads")  # under static/
+    # Set to 1 when the local upload directory is backed by a persistent disk
+    # (e.g. a Render disk mounted over static/uploads). Only effect: silences the
+    # "ephemeral storage" startup warning, since local storage is then durable.
+    UPLOADS_ON_PERSISTENT_DISK = os.environ.get("UPLOADS_ON_PERSISTENT_DISK", "0") == "1"
     # Only used when UPLOAD_BACKEND == "s3":
     S3_BUCKET = os.environ.get("S3_BUCKET", "")
     S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL", "")  # R2: https://<acct>.r2.cloudflarestorage.com
     S3_PUBLIC_BASE = os.environ.get("S3_PUBLIC_BASE", "")  # public URL base for objects
     S3_REGION = os.environ.get("S3_REGION", "auto")
+
+    # --- Optional upload image scanning ----------------------------------
+    # When enabled, every *sanitised* image is POSTed to IMAGE_SCAN_WEBHOOK_URL
+    # for classification before it is stored. The endpoint must reply HTTP 200
+    # with JSON {"allowed": true|false}. Anything else (error, timeout, non-200,
+    # unparseable body) counts as "couldn't verify"; the upload is then REFUSED
+    # unless IMAGE_SCAN_FAIL_OPEN=1. This is the seam to wire in a CSAM/abuse
+    # classifier (PhotoDNA/Thorn, a homemade model, a moderation API…) without
+    # touching app code. See docs/DEPLOYMENT.md.
+    IMAGE_SCAN_ENABLED = os.environ.get("IMAGE_SCAN_ENABLED", "0") == "1"
+    IMAGE_SCAN_WEBHOOK_URL = os.environ.get("IMAGE_SCAN_WEBHOOK_URL", "")
+    IMAGE_SCAN_TIMEOUT = int(os.environ.get("IMAGE_SCAN_TIMEOUT", "10"))
+    IMAGE_SCAN_FAIL_OPEN = os.environ.get("IMAGE_SCAN_FAIL_OPEN", "0") == "1"
+
+    # --- Rate limiting ---------------------------------------------------
+    # In-memory works for one instance but resets on restart and can't be shared
+    # across workers/instances. Point this at Redis in production so throttles
+    # survive deploys and span processes, e.g. redis://:password@host:6379/0.
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+
+    # --- Trust & safety --------------------------------------------------
+    # Shown on the policy pages and used as the abuse/DMCA contact. CHANGE THIS
+    # before launch (a real, monitored inbox you can act on quickly).
+    SITE_CONTACT_EMAIL = os.environ.get("SITE_CONTACT_EMAIL", "abuse@example.com")
+
+    # Hold new uploads from non-staff users for moderator approval before they
+    # go public. Opt-in — off preserves instant publishing. Reuses the takedown
+    # (is_hidden) plumbing: pending content is hidden with no takedown author,
+    # and a moderator "approves" it by unhiding. See blueprints/moderation.py.
+    REQUIRE_UPLOAD_REVIEW = os.environ.get("REQUIRE_UPLOAD_REVIEW", "0") == "1"
+
+    # Error monitoring: set SENTRY_DSN (and `pip install sentry-sdk`) to enable.
+    SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 
     # --- GitHub script import --------------------------------------------
     # Optional. Unset works fine for public repos (GitHub allows 60 anonymous

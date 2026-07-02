@@ -75,9 +75,72 @@ def save_upload(file_storage, crop_aspect=None):
 
     data = _sanitize_image(file_storage, ext, crop_aspect)
 
+    # Optional content scan (CSAM/abuse classifier) on the *clean* bytes, before
+    # anything is persisted. No-op unless IMAGE_SCAN_ENABLED. Raises UploadError
+    # to refuse a flagged (or unverifiable) upload.
+    _scan_image(data, ext)
+
     if current_app.config.get("UPLOAD_BACKEND", "local") == "s3":
         return _save_s3(key, ext, data)
     return _save_local(key, data)
+
+
+def _scan_image(data, ext):
+    """Send the sanitised image to an external moderation endpoint for a
+    keep/reject decision, when one is configured.
+
+    The endpoint receives the raw image bytes (POST body, correct Content-Type)
+    and must return HTTP 200 with JSON ``{"allowed": true|false}``. This is the
+    integration seam for a CSAM/abuse classifier (PhotoDNA/Thorn, a hosted
+    moderation API, or your own model). Disabled by default so nothing changes
+    until you opt in.
+
+    Fails CLOSED: if scanning is enabled but the endpoint errors, times out, or
+    returns something unparseable, the upload is refused — better a false
+    rejection than storing content you couldn't check. Set IMAGE_SCAN_FAIL_OPEN
+    to flip that trade-off.
+    """
+    cfg = current_app.config
+    if not cfg.get("IMAGE_SCAN_ENABLED"):
+        return
+
+    fail_open = bool(cfg.get("IMAGE_SCAN_FAIL_OPEN"))
+    url = (cfg.get("IMAGE_SCAN_WEBHOOK_URL") or "").strip()
+    if not url:
+        if fail_open:
+            return
+        current_app.logger.error(
+            "IMAGE_SCAN_ENABLED but IMAGE_SCAN_WEBHOOK_URL is unset.")
+        raise UploadError(
+            "Image moderation is temporarily unavailable — please try again later.")
+
+    import json as _json
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError, URLError
+
+    payload = data.getvalue()   # doesn't disturb the stream position for storage
+    req = Request(
+        url, data=payload, method="POST",
+        headers={
+            "Content-Type": _CONTENT_TYPE.get(ext, "application/octet-stream"),
+            "User-Agent": "TheCustomDuelist-UploadScanner",
+        },
+    )
+    try:
+        with urlopen(req, timeout=cfg.get("IMAGE_SCAN_TIMEOUT", 10)) as resp:
+            result = _json.loads(resp.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
+        if fail_open:
+            current_app.logger.warning("Image scan unavailable (%s); allowing.", exc)
+            return
+        current_app.logger.warning("Image scan unavailable (%s); refusing.", exc)
+        raise UploadError(
+            "Couldn't verify this image right now — please try again shortly.")
+    finally:
+        data.seek(0)            # be explicit: hand a rewound stream to storage
+
+    if not (isinstance(result, dict) and result.get("allowed") is True):
+        raise UploadError("That image was rejected by automated moderation.")
 
 
 def _sanitize_image(file_storage, ext, aspect=None):

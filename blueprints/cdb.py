@@ -21,9 +21,13 @@ from flask import (
 from flask_login import login_required
 
 from cdb_export import build_cdb
+from extensions import limiter
 from models import Card
 
 cdb_bp = Blueprint("cdb", __name__)
+
+# Throttle .cdb generation (server-side file building). GET is exempt.
+_GENERATE_LIMIT = "10 per minute; 60 per hour"
 
 
 def _cards_for_picker():
@@ -92,6 +96,7 @@ def new():
 
 
 @cdb_bp.route("/generate", methods=["POST"])
+@limiter.limit(_GENERATE_LIMIT)
 @login_required
 def generate():
     filename = _safe_filename(request.form.get("filename"))

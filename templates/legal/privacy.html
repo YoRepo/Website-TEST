@@ -1,0 +1,49 @@
+{# path: templates/legal/privacy.html -#}
+{# NOTE TO OWNER: this reflects what the app actually collects today (account
+   details, content you post, server/rate-limit logs keyed by IP). If you add
+   analytics, email, or third-party services, update this page. #}
+{% extends "base.html" %}
+{% block title %}Privacy · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose" style="max-width:760px;">
+  <p class="hero__eyebrow">Legal</p>
+  <h1 class="hero__title">Privacy</h1>
+  <p class="field__hint">Last updated: {{ now_year }}.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account details</strong> you provide: username, optional display
+      name, and a securely hashed password (we never store it in plain text).</li>
+    <li><strong>Content you create</strong>: cards, images, articles, comments,
+      and reports.</li>
+    <li><strong>Operational logs</strong>: your IP address and basic request data,
+      used for security, abuse prevention, and rate limiting.</li>
+  </ul>
+  <p>
+    Uploaded images are re-encoded on our server, which strips embedded metadata
+    such as camera EXIF and GPS location before the image is stored.
+  </p>
+
+  <h2>How we use it</h2>
+  <p>
+    To run the site, show your content, keep accounts secure, and enforce our
+    <a class="link-gold" href="{{ url_for('main.acceptable_use') }}">Acceptable Use Policy</a>.
+    We don't sell your personal information.
+  </p>
+
+  <h2>Sharing</h2>
+  <p>
+    We share data only with the service providers that host the site, and where
+    required by law or to respond to illegal content (for example, referring
+    CSAM to the authorities).
+  </p>
+
+  <h2>Your choices</h2>
+  <p>
+    You can request removal of your content or account by contacting us. Some
+    records may be retained where we're legally required to keep them.
+  </p>
+
+  <p>Contact: <a class="link-gold" href="mailto:{{ SITE_CONTACT_EMAIL }}">{{ SITE_CONTACT_EMAIL }}</a>.</p>
+</section>
+{% endblock %}

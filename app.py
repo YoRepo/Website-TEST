@@ -126,11 +126,52 @@ def _bootstrap_admin_from_env(app):
     app.logger.info("Bootstrapped initial admin %r from environment.", username)
 
 
+def _init_sentry(app):
+    """Wire up Sentry error monitoring when SENTRY_DSN is set and sentry-sdk is
+    installed. A no-op otherwise, so the dependency stays optional."""
+    dsn = (app.config.get("SENTRY_DSN") or "").strip()
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+    except ImportError:
+        app.logger.warning(
+            "SENTRY_DSN is set but sentry-sdk isn't installed "
+            "(pip install sentry-sdk); error monitoring is disabled.")
+        return
+    sentry_sdk.init(
+        dsn=dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.0,     # errors only by default; opt into tracing later
+        send_default_pii=False,     # don't ship user data to Sentry
+    )
+
+
+def _warn_ephemeral_uploads(app):
+    """Warn when the local upload backend is used in a non-dev deploy WITHOUT a
+    persistent disk: on a default Render service the local filesystem is
+    ephemeral, so those images are lost on every restart/redeploy. Silenced by
+    UPLOADS_ON_PERSISTENT_DISK=1 for services that mount a durable disk over the
+    uploads directory (in which case local storage is perfectly durable)."""
+    if (app.config.get("UPLOAD_BACKEND", "local") == "local"
+            and not app.config.get("UPLOADS_ON_PERSISTENT_DISK")
+            and os.environ.get("FLASK_DEBUG") != "1"):
+        app.logger.warning(
+            "UPLOAD_BACKEND=local in a non-debug deploy: on an ephemeral "
+            "filesystem uploaded images are LOST on every restart/redeploy. If "
+            "you mount a persistent disk over the uploads directory, set "
+            "UPLOADS_ON_PERSISTENT_DISK=1 to silence this; otherwise use "
+            "UPLOAD_BACKEND=s3 with the S3_* env vars for durable storage.")
+
+
 def create_app(config_class=Config):
     """Build, configure, and return a Flask application instance."""
 
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    _init_sentry(app)             # error monitoring (optional; no-op without DSN)
 
     # Render (and most PaaS) put the app behind a reverse proxy. Trust one hop of
     # X-Forwarded-* so request.remote_addr is the real client (for rate limiting)
@@ -156,6 +197,7 @@ def create_app(config_class=Config):
         return {
             "SITE_NAME": app.config["SITE_NAME"],
             "SITE_TAGLINE": app.config["SITE_TAGLINE"],
+            "SITE_CONTACT_EMAIL": app.config.get("SITE_CONTACT_EMAIL", ""),
             "now_year": datetime.utcnow().year,
         }
 
@@ -163,6 +205,8 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+
+    _warn_ephemeral_uploads(app)  # flag data-losing local uploads in production
 
     # --- Security headers + per-request CSP nonce ----------------------------
     # A fresh nonce each request lets us run a strict script-src (no

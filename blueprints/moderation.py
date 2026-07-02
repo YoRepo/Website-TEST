@@ -12,13 +12,14 @@ from datetime import datetime
 from urllib.parse import urlsplit
 
 from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for,
+    Blueprint, current_app, flash, redirect, render_template, request, url_for,
 )
 from flask_login import current_user
 
 from extensions import db, limiter
 from blueprints.auth import staff_required
 from models import Article, Card, Report, ReportStatus, REPORT_REASON_MAX
+from security import normalize_redirect_target
 
 moderation_bp = Blueprint("moderation", __name__)
 
@@ -37,8 +38,36 @@ def _resolve(content_type, content_id):
     return db.session.get(entry[0], content_id)
 
 
+def hold_for_review_if_required(obj):
+    """Pre-moderation gate. When REQUIRE_UPLOAD_REVIEW is on, hide freshly
+    created content by a non-staff user so a moderator must approve it before it
+    goes public. Reuses the takedown plumbing: the object is hidden with
+    ``hidden_by_id`` left NULL, which marks it *pending* (as opposed to a staff
+    takedown, which records who hid it). Call before commit. Returns True when
+    the object was held. Off by default — instant publishing is unchanged."""
+    if not current_app.config.get("REQUIRE_UPLOAD_REVIEW"):
+        return False
+    if current_user.is_authenticated and current_user.is_staff:
+        return False   # trusted authors publish immediately
+    obj.is_hidden = True
+    obj.hidden_at = datetime.utcnow()
+    obj.hidden_by_id = None
+    return True
+
+
+def _pending_count():
+    """How many items are awaiting first approval (hidden, no takedown author)."""
+    n = 0
+    for model, _label in REPORTABLE.values():
+        n += model.query.filter(model.is_hidden.is_(True),
+                                model.hidden_by_id.is_(None)).count()
+    return n
+
+
 def _safe_redirect(target):
-    """Same-site relative path only (open-redirect guard)."""
+    """Same-site relative path only (open-redirect guard). Folds backslashes
+    first so ``/\\evil.com`` can't masquerade as a relative path."""
+    target = normalize_redirect_target(target)
     if not target:
         return None
     parts = urlsplit(target)
@@ -101,7 +130,25 @@ def queue():
              for r in reports]
     open_count = Report.query.filter(Report.status == ReportStatus.OPEN).count()
     return render_template("moderation/queue.html", items=items, tab=tab,
-                           open_count=open_count)
+                           open_count=open_count, pending_count=_pending_count())
+
+
+@moderation_bp.route("/pending")
+@staff_required
+def pending():
+    """Content awaiting first approval (only populated when REQUIRE_UPLOAD_REVIEW
+    is enabled). Approving is just an unhide; rejecting is a normal takedown."""
+    items = []
+    for content_type, (model, _label) in REPORTABLE.items():
+        rows = (model.query.filter(model.is_hidden.is_(True),
+                                   model.hidden_by_id.is_(None))
+                .order_by(model.hidden_at.desc()).all())
+        items.extend({"content_type": content_type, "obj": obj} for obj in rows)
+    items.sort(key=lambda it: it["obj"].hidden_at or datetime.min, reverse=True)
+    return render_template("moderation/pending.html", items=items,
+                           enabled=bool(current_app.config.get("REQUIRE_UPLOAD_REVIEW")),
+                           open_count=Report.query.filter(
+                               Report.status == ReportStatus.OPEN).count())
 
 
 # ------------------------------------------------------------------- takedowns

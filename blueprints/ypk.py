@@ -21,9 +21,14 @@ from flask import (
 from flask_login import login_required
 
 from ypk_export import build_ypk
+from extensions import limiter
 from models import Card
 
 ypk_bp = Blueprint("ypk", __name__)
+
+# Throttle .ypk generation: it builds a .cdb, bundles scripts, and fetches
+# each card's render image (possibly server-side). GET is exempt.
+_GENERATE_LIMIT = "6 per minute; 40 per hour"
 
 
 def _cards_for_picker():
@@ -98,6 +103,7 @@ def new():
 
 
 @ypk_bp.route("/generate", methods=["POST"])
+@limiter.limit(_GENERATE_LIMIT)
 @login_required
 def generate():
     pack_name = _safe_pack_name(request.form.get("filename"))

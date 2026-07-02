@@ -15,9 +15,11 @@ import re
 from urllib.parse import urlsplit, urlunsplit
 from flask_login import current_user, login_required
 
-from extensions import db
+from extensions import db, limiter
 from blueprints.auth import owner_or_admin
+from blueprints.moderation import hold_for_review_if_required
 from storage import save_upload, UploadError
+from security import normalize_redirect_target
 from models import (
     Card, CardSet, ArticleCard,
     CardCategory, Attribute, Race, MonsterSummonType, MonsterAbility,
@@ -26,6 +28,11 @@ from models import (
 )
 
 cards_bp = Blueprint("cards", __name__)
+
+# Throttle create/edit submissions (each can carry image uploads that are
+# decoded, re-encoded, optionally scanned, and stored). GET is exempt so only
+# actual saves count. Keyed by client IP.
+_WRITE_LIMIT = "12 per minute; 120 per hour"
 
 _EXTRA_DECK = {MonsterSummonType.FUSION, MonsterSummonType.SYNCHRO,
                MonsterSummonType.XYZ, MonsterSummonType.LINK}
@@ -363,9 +370,10 @@ def _taken_cdb_ids(exclude_id=None):
 def _safe_return(url):
     """A same-site relative URL to return to after editing a card, or None.
     Guards against open redirects and avoids bouncing back into the editor."""
+    url = normalize_redirect_target(url)
     if not url:
         return None
-    parts = urlsplit(url.strip())
+    parts = urlsplit(url)
     if parts.netloc and parts.netloc != urlsplit(request.host_url).netloc:
         return None
     path = parts.path or "/"
@@ -389,6 +397,7 @@ def list_cards():
 
 
 @cards_bp.route("/new", methods=["GET", "POST"])
+@limiter.limit(_WRITE_LIMIT, methods=["POST"])
 @login_required
 def new():
     if request.method == "POST":
@@ -396,9 +405,14 @@ def new():
         try:
             _apply_form(card, request.form)
             card.owner_id = current_user.id
+            held = hold_for_review_if_required(card)
             db.session.add(card)
             db.session.commit()
-            flash(f"Created “{card.name}”.", "success")
+            if held:
+                flash(f"Created “{card.name}” — it's awaiting moderator review "
+                      "before it appears publicly.", "success")
+            else:
+                flash(f"Created “{card.name}”.", "success")
             return redirect(url_for("cards.edit", card_id=card.id))
         except (ValueError, KeyError) as exc:
             db.session.rollback()
@@ -414,6 +428,7 @@ def new():
 
 
 @cards_bp.route("/<int:card_id>/edit", methods=["GET", "POST"])
+@limiter.limit(_WRITE_LIMIT, methods=["POST"])
 @login_required
 def edit(card_id):
     card = Card.query.get_or_404(card_id)

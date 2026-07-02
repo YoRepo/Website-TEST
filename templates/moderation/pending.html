@@ -1,0 +1,75 @@
+{# path: templates/moderation/pending.html -#}
+{% extends "base.html" %}
+{% block title %}Pending review · {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero__eyebrow">Moderation</p>
+  <h1 class="hero__title">Awaiting review</h1>
+  <p class="hero__sub">
+    {{ items|length }} item{{ '' if items|length == 1 else 's' }} awaiting first approval.
+  </p>
+</section>
+
+<div class="results-bar">
+  <div class="view-toggle" role="group" aria-label="Moderation section">
+    <a class="view-toggle__btn" href="{{ url_for('moderation.queue') }}">Reports ({{ open_count }})</a>
+    <a class="view-toggle__btn is-active" href="{{ url_for('moderation.pending') }}">Pending ({{ items|length }})</a>
+  </div>
+</div>
+
+{% if not enabled %}
+  <div class="empty">
+    <p class="empty__title">Pre-moderation is off.</p>
+    <p class="empty__hint">Set <code>REQUIRE_UPLOAD_REVIEW=1</code> to hold new
+      uploads from non-staff users here until a moderator approves them.</p>
+  </div>
+{% elif not items %}
+  <div class="empty">
+    <p class="empty__title">Nothing waiting.</p>
+    <p class="empty__hint">New submissions from non-staff users will appear here.</p>
+  </div>
+{% else %}
+  <div class="mod-queue">
+    {% for item in items %}
+      {% set obj = item.obj %}
+      <article class="block mod-item">
+        <div class="mod-item__meta">
+          <span class="badge">{{ item.content_type|capitalize }}</span>
+          <span class="badge badge--hidden">Pending</span>
+          {% if obj.hidden_at %}
+            <span class="mod-item__when">{{ obj.hidden_at.strftime('%b %d, %Y %H:%M') }} UTC</span>
+          {% endif %}
+        </div>
+
+        <div class="mod-item__content">
+          {% if item.content_type == 'card' %}
+            <div class="mod-item__card">{% set card = obj %}{% include "partials/card_tile.html" %}</div>
+          {% elif item.content_type == 'article' %}
+            <p class="mod-item__article">
+              <a class="link-gold" href="{{ url_for('articles.detail', article_id=obj.id) }}">{{ obj.title }}</a>
+              — by {{ (obj.author.display_name or obj.author.username) if obj.author else 'Unknown' }}
+            </p>
+          {% endif %}
+        </div>
+
+        <div class="mod-item__actions">
+          <form method="post" class="mod-inline"
+                action="{{ url_for('moderation.unhide', content_type=item.content_type, content_id=obj.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="btn" type="submit">Approve (publish)</button>
+          </form>
+          <form method="post" class="mod-inline"
+                action="{{ url_for('moderation.hide', content_type=item.content_type, content_id=obj.id) }}"
+                data-confirm="Reject this {{ item.content_type }}? It stays hidden as a takedown.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="link-danger" type="submit">Reject (keep hidden)</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

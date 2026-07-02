@@ -27,6 +27,16 @@
       <label for="confirm">Confirm password</label>
       <input id="confirm" name="confirm" type="password" required />
     </div>
+    <div class="field field--check">
+      <label>
+        <input type="checkbox" name="accept_terms" value="1"
+               {% if form.get('accept_terms') %}checked{% endif %} required />
+        I agree to the
+        <a class="link-gold" href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms</a>
+        and
+        <a class="link-gold" href="{{ url_for('main.acceptable_use') }}" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+      </label>
+    </div>
     <div class="cardform__actions">
       <button class="btn" type="submit">Sign up</button>
       <a class="btn btn--ghost" href="{{ url_for('auth.login') }}">I have an account</a>

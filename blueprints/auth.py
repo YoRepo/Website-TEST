@@ -13,6 +13,7 @@ from flask_login import (
 
 from extensions import db, limiter
 from models import User, UserRole
+from security import normalize_redirect_target
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -60,7 +61,10 @@ def owner_or_staff(owner_id):
 
 
 def _safe_next(target):
-    """Open-redirect guard: only allow same-site relative paths."""
+    """Open-redirect guard: only allow same-site relative paths. Folds
+    backslashes first so ``/\\evil.com`` (which browsers read as ``//evil.com``)
+    can't slip past the scheme/netloc check."""
+    target = normalize_redirect_target(target)
     if not target:
         return None
     parts = urlsplit(target)
@@ -79,6 +83,7 @@ def register():
         display_name = (request.form.get("display_name") or "").strip() or None
         password = request.form.get("password") or ""
         confirm = request.form.get("confirm") or ""
+        accepted = bool(request.form.get("accept_terms"))
 
         errors = []
         if not (3 <= len(username) <= 40) or not username.isalnum():
@@ -89,13 +94,16 @@ def register():
             errors.append(f"Password must be at least {MIN_PASSWORD_LEN} characters.")
         if password != confirm:
             errors.append("Passwords don't match.")
+        if not accepted:
+            errors.append("Please accept the Terms and Acceptable Use Policy.")
 
         if errors:
             for e in errors:
                 flash(e, "error")
             return render_template(
                 "auth/register.html",
-                form={"username": username, "display_name": display_name or ""})
+                form={"username": username, "display_name": display_name or "",
+                      "accept_terms": accepted})
 
         user = User(username=username, display_name=display_name,
                     role=UserRole.USER)
