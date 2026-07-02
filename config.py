@@ -39,6 +39,10 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "8")) * 1024 * 1024
     UPLOAD_BACKEND = os.environ.get("UPLOAD_BACKEND", "local")  # "local" | "s3"
     UPLOAD_SUBDIR = os.environ.get("UPLOAD_SUBDIR", "uploads")  # under static/
+    # Set to 1 when the local upload directory is backed by a persistent disk
+    # (e.g. a Render disk mounted over static/uploads). Only effect: silences the
+    # "ephemeral storage" startup warning, since local storage is then durable.
+    UPLOADS_ON_PERSISTENT_DISK = os.environ.get("UPLOADS_ON_PERSISTENT_DISK", "0") == "1"
     # Only used when UPLOAD_BACKEND == "s3":
     S3_BUCKET = os.environ.get("S3_BUCKET", "")
     S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL", "")  # R2: https://<acct>.r2.cloudflarestorage.com

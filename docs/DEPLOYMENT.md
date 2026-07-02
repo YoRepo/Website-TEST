@@ -22,12 +22,33 @@ an admin exists. Remove them afterward.
 
 ---
 
-## 2. Durable upload storage (S3 / Cloudflare R2) — strongly recommended
+## 2. Durable upload storage
 
-Render's filesystem is **ephemeral**: with the default `local` upload backend,
-every uploaded image is deleted on each deploy or restart. The app logs a
-warning at startup when it detects this. Switch to object storage for anything
-real. `boto3` is already in `requirements.txt`.
+Uploaded images must live somewhere durable. There are two supported options —
+you only need one.
+
+### Option A: a persistent disk (what this deployment uses)
+
+If you mount a Render **persistent disk** over the uploads directory
+(`static/uploads`), the default `local` backend is already durable — images
+survive every deploy and restart. In that case, just acknowledge it so the app
+doesn't warn about ephemeral storage:
+
+```
+UPLOADS_ON_PERSISTENT_DISK=1
+```
+
+Notes for the disk setup: a service with a disk runs as a **single instance**
+(disks can't be shared across instances) and deploys aren't zero-downtime — both
+fine at this scale. Make sure Render disk **snapshots/backups** are enabled,
+since the disk is a single copy.
+
+### Option B: object storage (S3 / Cloudflare R2)
+
+Render's filesystem is **ephemeral by default** (no disk): without one, every
+uploaded image is deleted on each deploy/restart, and the app warns at startup.
+If you're not using a disk, switch to object storage. `boto3` is already in
+`requirements.txt`.
 
 ```
 UPLOAD_BACKEND=s3
@@ -142,7 +163,9 @@ no way to contact a user about their content.
 - [ ] `SECRET_KEY` set (app refuses to boot otherwise).
 - [ ] `DATABASE_URL` points at Render Postgres (not SQLite).
 - [ ] `FLASK_DEBUG` is unset.
-- [ ] `UPLOAD_BACKEND=s3` with working `S3_*` creds; test an upload.
+- [ ] Uploads are durable: either a persistent disk over `static/uploads`
+      (+ `UPLOADS_ON_PERSISTENT_DISK=1`), or `UPLOAD_BACKEND=s3` with working
+      `S3_*` creds. Test an upload survives a redeploy.
 - [ ] `RATELIMIT_STORAGE_URI` points at Redis.
 - [ ] `SITE_CONTACT_EMAIL` is a real, monitored inbox.
 - [ ] Policy pages reviewed; DMCA agent + legal entity filled in.

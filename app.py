@@ -149,13 +149,19 @@ def _init_sentry(app):
 
 
 def _warn_ephemeral_uploads(app):
-    """Loudly warn when the ephemeral local disk is the upload backend in a
-    non-dev deploy: those images are lost on every restart/redeploy on Render."""
+    """Warn when the local upload backend is used in a non-dev deploy WITHOUT a
+    persistent disk: on a default Render service the local filesystem is
+    ephemeral, so those images are lost on every restart/redeploy. Silenced by
+    UPLOADS_ON_PERSISTENT_DISK=1 for services that mount a durable disk over the
+    uploads directory (in which case local storage is perfectly durable)."""
     if (app.config.get("UPLOAD_BACKEND", "local") == "local"
+            and not app.config.get("UPLOADS_ON_PERSISTENT_DISK")
             and os.environ.get("FLASK_DEBUG") != "1"):
         app.logger.warning(
-            "UPLOAD_BACKEND=local in a non-debug deploy: uploaded images live on "
-            "an ephemeral disk and are LOST on every restart/redeploy. Set "
+            "UPLOAD_BACKEND=local in a non-debug deploy: on an ephemeral "
+            "filesystem uploaded images are LOST on every restart/redeploy. If "
+            "you mount a persistent disk over the uploads directory, set "
+            "UPLOADS_ON_PERSISTENT_DISK=1 to silence this; otherwise use "
             "UPLOAD_BACKEND=s3 with the S3_* env vars for durable storage.")
 
 
