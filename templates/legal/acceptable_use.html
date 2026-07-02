@@ -1,0 +1,43 @@
+{# path: templates/legal/acceptable_use.html -#}
+{# NOTE TO OWNER: tune the prohibited-content list to your community, but keep
+   the illegal-content and CSAM lines — those are the ones that protect you. #}
+{% extends "base.html" %}
+{% block title %}Acceptable Use Policy · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose" style="max-width:760px;">
+  <p class="hero__eyebrow">Legal</p>
+  <h1 class="hero__title">Acceptable Use Policy</h1>
+  <p class="field__hint">Last updated: {{ now_year }}.</p>
+
+  <p>
+    {{ SITE_NAME }} is a place to share original custom cards. To keep it usable
+    for everyone, you agree not to upload, post, or link to any of the following.
+  </p>
+
+  <h2>Never allowed</h2>
+  <ul>
+    <li><strong>Child sexual abuse material (CSAM)</strong> or any sexual content
+      involving minors, real or drawn. This is reported to the authorities and
+      the account is removed immediately.</li>
+    <li>Content that is illegal where you or we operate, or that promotes serious
+      harm or violence against people.</li>
+    <li>Sexual content, gore, or shock imagery presented as card art.</li>
+    <li>Harassment, hate speech, or threats targeting people based on who they are.</li>
+    <li>Artwork or text you don't have the right to use (copyright/trademark
+      infringement), including ripped official assets passed off as your own.</li>
+    <li>Malware, or attempts to break, overload, or probe the site's security.</li>
+    <li>Spam, scams, or bulk automated uploads.</li>
+    <li>Other people's private information.</li>
+  </ul>
+
+  <h2>How we enforce this</h2>
+  <p>
+    Anyone can <a class="link-gold" href="{{ url_for('main.report_abuse') }}">report content</a>.
+    We may hide or delete content, hold uploads for review, and suspend or ban
+    accounts. Uploaded images may be scanned automatically. Serious violations —
+    especially CSAM — are referred to the appropriate authorities.
+  </p>
+
+  <p>Report a problem: <a class="link-gold" href="mailto:{{ SITE_CONTACT_EMAIL }}">{{ SITE_CONTACT_EMAIL }}</a>.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{# path: templates/legal/report_abuse.html -#}
+{# NOTE TO OWNER: for US hosting, register a DMCA designated agent with the US
+   Copyright Office and put that agent's details here. If you become aware of
+   CSAM you are legally required to report it to NCMEC (CyberTipline) and to
+   preserve the relevant records — do not attempt to "investigate" the content
+   yourself. Confirm the exact obligations for your jurisdiction. #}
+{% extends "base.html" %}
+{% block title %}Report abuse · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="prose" style="max-width:760px;">
+  <p class="hero__eyebrow">Trust &amp; safety</p>
+  <h1 class="hero__title">Report a problem</h1>
+
+  <p>
+    See something that breaks our
+    <a class="link-gold" href="{{ url_for('main.acceptable_use') }}">Acceptable Use Policy</a>?
+    The fastest way is the <strong>Report</strong> button shown on each card and
+    article. You don't need an account to use it. You can also email us.
+  </p>
+
+  <h2>Illegal content &amp; child safety</h2>
+  <p>
+    Reports of illegal content — <strong>especially any sexual content involving
+    minors</strong> — are treated as the highest priority, actioned quickly, and
+    referred to the appropriate authorities. Email
+    <a class="link-gold" href="mailto:{{ SITE_CONTACT_EMAIL }}">{{ SITE_CONTACT_EMAIL }}</a>
+    with a link to the content. Please don't download or re-share the material.
+  </p>
+
+  <h2>Copyright (DMCA) claims</h2>
+  <p>
+    If you own the copyright to artwork or text posted here without permission,
+    send a notice to
+    <a class="link-gold" href="mailto:{{ SITE_CONTACT_EMAIL }}">{{ SITE_CONTACT_EMAIL }}</a>
+    including:
+  </p>
+  <ul>
+    <li>a link to the specific content,</li>
+    <li>identification of the work you own,</li>
+    <li>your contact details,</li>
+    <li>a statement that you believe the use is unauthorised, and</li>
+    <li>a statement, under penalty of perjury, that your notice is accurate and
+      you're authorised to act for the owner.</li>
+  </ul>
+  <p class="field__hint">
+    Designated copyright agent: [name / address — register with your national
+    copyright office and fill in here].
+  </p>
+</section>
+{% endblock %}

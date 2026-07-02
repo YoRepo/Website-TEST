@@ -6,6 +6,8 @@ without circular imports: models.py and the blueprints import `db` from here,
 and app.py later "binds" it to the real app with `db.init_app(app)`.
 """
 
+import os
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
@@ -20,11 +22,16 @@ csrf = CSRFProtect()
 # Per-client request throttling (brute-force / abuse defence). Keyed by client
 # IP — see ProxyFix in create_app(), which makes request.remote_addr the real
 # caller behind Render's proxy. No global default limits: individual views opt
-# in with @limiter.limit(...). In-memory storage is fine for a single instance;
-# point RATELIMIT_STORAGE_URI at Redis if you ever run more than one.
+# in with @limiter.limit(...).
+#
+# Storage defaults to in-memory, which is fine for a single instance but resets
+# on every restart/deploy and can't be shared across workers or instances. Set
+# RATELIMIT_STORAGE_URI (e.g. redis://…) in production so throttles actually
+# persist and span processes — otherwise brute-force protection is reset every
+# time Render restarts the dyno.
 limiter = Limiter(
     key_func=get_remote_address,
-    storage_uri="memory://",
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
 )
 
 # These need no app, so configure them here.

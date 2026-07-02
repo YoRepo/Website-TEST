@@ -15,6 +15,7 @@
       <a class="view-toggle__btn {{ 'is-active' if tab == key }}"
          href="{{ url_for('moderation.queue', status=key) }}">{{ label }}</a>
     {% endfor %}
+    <a class="view-toggle__btn" href="{{ url_for('moderation.pending') }}">Pending review ({{ pending_count }})</a>
   </div>
 </div>
 

@@ -10,3 +10,11 @@ Flask-Limiter==4.1.1
 gunicorn==26.0.0
 psycopg2-binary==2.9.12
 Pillow==12.2.0
+
+# Only needed when UPLOAD_BACKEND=s3 (S3/Cloudflare R2 durable upload storage).
+# Harmless to install otherwise; imported lazily in storage.py. Kept as a
+# compatible-release range because it can't be exercised without live S3
+# credentials — verify with a real upload before relying on it. Recommended for
+# production: Render's local disk is ephemeral, so local uploads vanish on
+# every deploy/restart.
+boto3>=1.34,<2.0

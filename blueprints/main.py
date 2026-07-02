@@ -73,3 +73,28 @@ def search():
 def about():
     """A short about page."""
     return render_template("about.html")
+
+
+# --- Policy / trust & safety pages ---------------------------------------
+# Static legal pages. Content ships as sensible defaults with clearly-marked
+# placeholders — review them (and the contact email) with someone who knows
+# your jurisdiction before launch. Linked from the footer.
+@main_bp.route("/terms")
+def terms():
+    return render_template("legal/terms.html")
+
+
+@main_bp.route("/acceptable-use")
+def acceptable_use():
+    return render_template("legal/acceptable_use.html")
+
+
+@main_bp.route("/privacy")
+def privacy():
+    return render_template("legal/privacy.html")
+
+
+@main_bp.route("/report-abuse")
+def report_abuse():
+    """How to report illegal content, abuse, or a copyright (DMCA) claim."""
+    return render_template("legal/report_abuse.html")
